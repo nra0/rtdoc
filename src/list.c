@@ -25,15 +25,16 @@ typedef struct ListEntry {
  * An iterator that can traverse the list in either direction.
  */
 struct ListIter {
-  List *list;                  /* The list we are iterating. */
-  ListEntry *next;             /* For a linked list, the next entry in the iterator. */
-  unsigned int index;          /* For an array list, the index of the next element. */
-  bool reverse;                /* Are we iterating in reverse? */
+  List *list;             /* The list we are iterating. */
+  union {
+    ListEntry *next;      /* For a linked list, the next entry in the iterator. */
+    unsigned int index;   /* For an array list, the index of the next element. */
+  };
+  bool reverse;           /* Are we iterating in reverse? */
 };
 
 /*
  * A generic doubly linked list.
- *
  */
 typedef struct LinkedList {
   ListEntry *head;  /* The start of the list. */
