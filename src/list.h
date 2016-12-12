@@ -18,15 +18,13 @@ void listSetEqualsFn(List *list, int (*equals)(void *value1, void *value2));
 /* List getters. */
 unsigned int listLength(const List *list);
 void *listGet(const List *list, unsigned int index);
-int indexOf(List *list, void *value);
-unsigned int listType(const List *list);
+int listIndex(const List *list, void *value);
 
 /* List setters. */
-List listAdd(List *list, unsigned int index, void *value);
-List listAppend(List *list, void *value);
-List listPrepend(List *list, void *value);
-void *listRemove(List *list, unsigned int index);
-List listRemoveValue(List *list, void *value);
+List *listInsert(List *list, int index, void *value);
+List *listAppend(List *list, void *value);
+List *listPrepend(List *list, void *value);
+List *listRemove(List *list, unsigned int index);
 
 /* List iteration. */
 ListIter *listIter(List *list, bool reverse);

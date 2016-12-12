@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 
-#define ARRAY_LIST_INITIAL_CAPACITY  10
-#define ARRAY_LIST_RESIZE_LOAD       0.75
+#define ARRAY_LIST_INITIAL_CAPACITY  8
 
 
 /**********************************************************************
@@ -23,7 +23,7 @@ typedef struct ListEntry {
 } ListEntry;
 
 /*
- * A iterator, which can traverse the list in either direction.
+ * An iterator that can traverse the list in either direction.
  */
 struct ListIter {
   List *list;                  /* The list we are iterating. */
@@ -85,7 +85,11 @@ struct List {
 ListIter *listIter(List *list, bool reverse) {
   assert(list != NULL);
 
-  ListIter *iter = malloc(sizeof(iter));
+  ListIter *iter;
+
+  if ((iter = malloc(sizeof(ListIter))) == NULL)
+    return NULL;
+
   iter->list = list;
   iter->reverse = reverse;
 
@@ -224,23 +228,21 @@ List *listCreate(bool linked) {
 /*
  * Free an array list.
  */
-void listFreeArray(List *list) {
-  if (list->free)
-    for (int i = 0; i < list->length; i++)
-      list->free(list->alist->entries + i);
+static void listFreeArray(List *list) {
+  for (int i = 0; i < list->length; i++)
+    list->free(list->alist->entries + i);
   free(list->alist);  
 }
 
 /*
  * Free a linked list
  */
-void listFreeLinked(List *list) {
+static void listFreeLinked(List *list) {
   ListEntry *entry;
   ListIter *iter = listIter(list, false);
   
   while ((entry = listIterNextEntry(iter)) != NULL) {
-    if (list->free)
-      list->free(entry->value);
+    list->free(entry->value);
     free(entry);
   }
   free(list->llist);
@@ -314,7 +316,7 @@ inline static void *listGetArray(const List *list, unsigned int index) {
 /*
  * Get an entry at a given index.
  */
-static ListEntry *listEntryGet(const List *list, unsigned int index) {
+static ListEntry *listGetEntry(const List *list, unsigned int index) {
   ListIter *iter;
   ListEntry *entry;
 
@@ -327,6 +329,7 @@ static ListEntry *listEntryGet(const List *list, unsigned int index) {
 
   while (index >= 0)
     entry = listIterNextEntry(iter);
+  free(iter);
 
   return entry;
 }
@@ -335,7 +338,7 @@ static ListEntry *listEntryGet(const List *list, unsigned int index) {
  * Get a value from a linked list at an index.
  */
 inline static void *listGetLinked(const List *list, unsigned int index) {
-  return listEntryValue(listEntryGet(list, index));
+  return listEntryValue(listGetEntry(list, index));
 }
 
 /*
@@ -355,33 +358,225 @@ void *listGet(const List *list, unsigned int index) {
     return listGetArray(list, index);
 }
 
+/*
+ * Find a value in an array list.
+ */
+static int listIndexArray(const List *list, void *value) {
+  int index = -1;
+
+  for (int i = 0; i < list->length; i++) {
+    if (list->equals(list->alist->entries + i, value)) {
+      index = i;
+      break;
+    }
+  }
+
+  return index;
+}
+
+/*
+ * Find a value in a linked list.
+ */
+static int listIndexLinked(const List *list, void *value) {
+  ListIter *iter;
+  int index = -1;
+
+  iter = listIter((List*) list, false);
+  for (int i = 0; i < list->length; i++) {
+    if (list->equals(listIterNext(iter), value)) {
+      index = i;
+      break;
+    }
+  }
+  free(iter);
+
+  return index;
+}
+
+/*
+ * Get the index of the first occurrence of a value in a list.
+ *
+ * Returns -1 if the value is not found.
+ *
+ * @param list: The list to search.
+ * @param value:  The value to search for.
+ * @return The index of the value.
+ */
+int listIndex(const List *list, void *value) {
+  assert(list != NULL);
+
+  if (list->linked)
+    return listIndexLinked(list, value);
+  else
+    return listIndexArray(list, value);
+}
 
 
+/********************************************************************************
+ *                              List mutations.
+ *******************************************************************************/
 
+/*
+ * Insert a value into an array list.
+ */
+static List *listAddArray(List *list, int index, void *value) {
+  if (list->length == list->alist->capacity) {
+    /* Reallocate array. */
+    char *entries;
 
+    list->alist->capacity = list->alist->capacity * 2 + 1;
+    if ((entries = malloc(sizeof(void*) * list->alist->capacity)))
+      return NULL;
+    
+    memcpy(list->alist->entries, entries, sizeof(void*) * list->length);
+    free(list->alist->entries);
+    list->alist->entries = entries;
+    return listAddArray(list, index, value);
+  } 
 
+  if (index < 0) {
+    /* Append to end of list. */
+    memcpy(value, list->alist->entries + list->length, sizeof(void*));
+  } else {
+    /* Insert into list. */
+    for (int i = list->length; i >= index; i++)
+      memcpy(list->alist->entries + i - 1, list->alist->entries + i, sizeof(void*));
+    memcpy(value, list->alist->entries + index, sizeof(void*));
+  }
 
+  return list;
+}
 
+/*
+ * Insert a value into a linked list.
+ */
+static List *listAddLinked(List *list, int index, void *value) {
+  ListEntry *entry, *current;
 
+  if ((entry = malloc(sizeof(ListEntry))) == NULL)
+    return NULL;
+  entry->value = value;
 
+  if (!list->length) {
+    /* This is the first entry in the list. */
+    list->llist->head = entry;
+    list->llist->tail = entry;
+  } else if (index < 0) {
+    /* Append to the end of the list. */
+    entry->prev = list->llist->tail;
+    entry->next = NULL;
+    list->llist->tail = entry;
+  } else {
+    /* Insert into an existing position. */
+    current = listGetEntry(list, index);
+    entry->next = current;
+    entry->prev = current->prev;
+    current->prev = entry;
+    if (entry->prev != NULL)
+      entry->prev->next = entry;
+    if (index == 0)
+      list->llist->head = entry;
+  }
 
+  return list;
+}
 
+/*
+ * Insert a value into a list at an index.
+ *
+ * An index of -1 will append the value to the end of the list.
+ *
+ * @param list: The list to insert into.
+ * @param index: The position to put the value.
+ * @return The list with the value added.
+ */
+List *listAdd(List *list, int index, void *value) {
+  assert(list != NULL);
+  assert(index < list->length);
+  
+  List *ret;
 
+  if (list->linked)
+    ret = listAddLinked(list, index, value);
+  else
+    ret = listAddArray(list, index, value);
+  if (ret != NULL)
+    ret->length++;
 
+  return ret;
+}
 
+/*
+ * Append a value to the end of a list.
+ *
+ * This is the equivalent of `listInsert` with an index of -1.
+ *
+ * @param list: The list to append to.
+ * @param value: The value to append.
+ * @return The list with the value appended.
+ */
+inline List *listAppend(List *list, void *value) {
+  return listInsert(list, -1, value);
+}
 
+/*
+ * Insert a value at the beginning of a list.
+ *
+ * This is the equivaleng of `listInsert` with an index of 0.
+ *
+ * @param list: The list to prepend to.
+ * @param value: The value to prepend.
+ * @return The list with the new value.
+ */
+inline List *listPrepend(List *list, void *value) {
+  return listInsert(list, 0, value); 
+}
 
+/*
+ * Remove a value from an array list.
+ */
+static List *listRemoveArray(List *list, unsigned int index) {
+  list->free(list->alist->entries + index);
+  
+  for (int i = index; i < list->length - 1; i++)
+    memcpy(list->alist->entries + i + 1, list->alist->entries + i, sizeof(void*));
 
+  return list;
+}
 
+/*
+ * Remove a value from a linked list.
+ */
+static List *listRemoveLinked(List *list, unsigned int index) {
+  ListEntry *entry = listGetEntry(list, index);
+  
+  list->free(entry->value);
+  if (entry->prev != NULL)
+    entry->prev->next = entry->next;
+  if (entry->next != NULL)
+    entry->next->prev = entry->prev;
+  if (entry == list->llist->head)
+    list->llist->head = entry->next;
+  if (entry == list->llist->tail)
+    list->llist->tail = entry->prev;
 
+  return list;
+}
 
+/*
+ * Remove a value from a list at an index.
+ *
+ * @param list: The list to remove from.
+ * @param index: The position in the list to remove from.
+ * @return The list without the value.
+ */
+List *listRemove(List *list, unsigned int index) {
+  assert(list != NULL);
+  assert(index < list->length);
 
-
-
-
-
-
-
-
-
+  if (list->linked)
+    return listRemoveLinked(list, index);
+  else
+    return listRemoveArray(list, index);
+}
 
