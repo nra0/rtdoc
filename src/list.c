@@ -1,7 +1,6 @@
 #include "list.h"
 
 #include <assert.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -183,7 +182,6 @@ static LinkedList *listCreateLinked(void) {
  */
 static ArrayList *listCreateArray(void) {
   ArrayList *list;
-  void *entries;
 
   if ((list = malloc(sizeof(ArrayList))) == NULL)
     return NULL;
@@ -245,6 +243,8 @@ static void listFreeLinked(List *list) {
     list->free(entry->value);
     free(entry);
   }
+  free(iter);
+
   free(list->llist);
 }
 
@@ -419,7 +419,7 @@ int listIndex(const List *list, void *value) {
 /*
  * Insert a value into an array list.
  */
-static List *listAddArray(List *list, int index, void *value) {
+static List *listInsertArray(List *list, int index, void *value) {
   if (list->length == list->alist->capacity) {
     /* Reallocate array. */
     char *entries;
@@ -431,7 +431,7 @@ static List *listAddArray(List *list, int index, void *value) {
     memcpy(list->alist->entries, entries, sizeof(void*) * list->length);
     free(list->alist->entries);
     list->alist->entries = entries;
-    return listAddArray(list, index, value);
+    return listInsertArray(list, index, value);
   } 
 
   if (index < 0) {
@@ -450,7 +450,7 @@ static List *listAddArray(List *list, int index, void *value) {
 /*
  * Insert a value into a linked list.
  */
-static List *listAddLinked(List *list, int index, void *value) {
+static List *listInsertLinked(List *list, int index, void *value) {
   ListEntry *entry, *current;
 
   if ((entry = malloc(sizeof(ListEntry))) == NULL)
@@ -490,16 +490,16 @@ static List *listAddLinked(List *list, int index, void *value) {
  * @param index: The position to put the value.
  * @return The list with the value added.
  */
-List *listAdd(List *list, int index, void *value) {
+List *listInsert(List *list, int index, void *value) {
   assert(list != NULL);
   assert(index < list->length);
   
   List *ret;
 
   if (list->linked)
-    ret = listAddLinked(list, index, value);
+    ret = listInsertLinked(list, index, value);
   else
-    ret = listAddArray(list, index, value);
+    ret = listInsertArray(list, index, value);
   if (ret != NULL)
     ret->length++;
 

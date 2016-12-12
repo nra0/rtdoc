@@ -1,9 +1,12 @@
+#ifndef __LIST_H__
+#define __LIST_H__
+
+#include <stdbool.h>
+
 /*
  * A generic list, which can be implemented as either an array or linked data structure.
  */
 
-#ifndef __LIST_H__
-#define __LIST_H__
 
 typedef struct List List;
 typedef struct ListIter ListIter;
