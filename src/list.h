@@ -12,11 +12,8 @@ typedef struct List List;
 typedef struct ListIter ListIter;
 
 /* Memory managment. */
-List *listCreate(bool linked);
+List *listCreate(bool linked, void *(*copy)(void *value), void (*free)(void *value), int (*equals)(void *value1, void *value2));
 void listFree(List *list);
-void listSetCopyFn(List *list, void *(*copy)(void *value));
-void listSetFreeFn(List *list, void (*free)(void *value));
-void listSetEqualsFn(List *list, int (*equals)(void *value1, void *value2));
 
 /* List getters. */
 unsigned int listLength(const List *list);

@@ -7,20 +7,42 @@
 
 
 /*
+ * Mock structs.
+ */
+
+typedef struct Box {
+  int value;
+} Box;
+
+Box *boxCreate(void);
+void *boxCopy(void *box);
+void boxFree(void *box);
+int boxEquals(void *box1, void *box2);
+
+
+/*
  * Test utility functions.
  */
 
 typedef struct TestSuite TestSuite;
 
 /* Test suite functions. */
-TestSuite *testSuiteCreate(char *name, void (*setup), void (*teardown));
+TestSuite *testSuiteCreate(char *name, void (*setup)(void), void (*teardown)(void));
 void testSuiteFree(TestSuite *suite);
-void testSuiteAdd(TestSuite *suite, char *name, void (*test));
-void testSuiteRun(TestSuite *suite);
+char *testSuiteName(TestSuite *suite);
+unsigned int testSuiteNumTests(TestSuite *suite);
+void testSuiteAdd(TestSuite *suite, char *name, void (*test)(void));
+int testSuiteRun(TestSuite *suite);
 
 /* Assert functions */
-void assertEqual(void *value1, void *value2);
-void assertEqualString(char *string1, char *string2);
+void assertEqual(int value1, int value2);
+void assertNotEqual(int value1, int value2);
+void assertDoubleEqual(double value1, double value2);
+void assertDoubleNotEqual(double value1, double value2);
+void assertPointerEqual(void *pointer1, void *pointer2);
+void assertPointerNotEqual(void *pointer1, void *pointer2);
+void assertString(char *string1, char *string2);
+void assertStringNotEqual(char *string1, char *string2);
 void assertTrue(bool status);
 void assertFalse(bool status);
 

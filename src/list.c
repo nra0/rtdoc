@@ -28,7 +28,7 @@ struct ListIter {
   List *list;             /* The list we are iterating. */
   union {
     ListEntry *next;      /* For a linked list, the next entry in the iterator. */
-    unsigned int index;   /* For an array list, the index of the next element. */
+    int index;   /* For an array list, the index of the next element. */
   };
   bool reverse;           /* Are we iterating in reverse? */
 };
@@ -200,9 +200,12 @@ static ArrayList *listCreateArray(void) {
  * Create a new list, returning a NULL pointer on error.
  *
  * @param type: The type of list to create (either `LIST_TYPE_ARRAY` or `LIST_TYPE_LINKED`).
+ * @param copy: Function to copy the list value.
+ * @param free: Function to free the list value.
+ * @param equals: Comparator between two values.
  * @return The newly created list.
  */
-List *listCreate(bool linked) {
+List *listCreate(bool linked, void *(*copy)(void *value), void (*free)(void *value), int (*equals)(void *value1, void *value2)) {
   List *list;
   bool success;
 
@@ -264,33 +267,6 @@ void listFree(List *list) {
   free(list);
 }
 
-/*
- * Set the function to copy a list entry value.
- *
- * @param copy: The function that returns a copy of a value.
- */
-inline void listSetCopyFn(List *list, void *(*copy)(void *value)) {
-  list->copy = copy;
-}
-
-/*
- * Set the function to free a list entry value.
- *
- * @param free: The function that frees the value.
- */
-inline void listSetFree(List *list, void (*free)(void *value)) {
-  list->free = free;
-}
-
-/*
- * Set the equals function for the list entry value.
- *
- * @param equals: A function that compares two values.
- */
-inline void listSetEquals(List *list, int (*equals)(void *value1, void *value2)) {
-  list->equals = equals;
-}
-
 
 /********************************************************************************
  *                              List getters.
@@ -328,7 +304,7 @@ static ListEntry *listGetEntry(const List *list, unsigned int index) {
     index = list->length - index - 1;
   }
 
-  while (index >= 0)
+  for (int i = 0; i <= index; i++)
     entry = listIterNextEntry(iter);
   free(iter);
 
