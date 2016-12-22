@@ -14,7 +14,7 @@ typedef struct Box {
   int value;
 } Box;
 
-Box *boxCreate(void);
+Box *boxCreate(int value);
 void *boxCopy(void *box);
 void boxFree(void *box);
 int boxEquals(void *box1, void *box2);
@@ -41,10 +41,11 @@ void assertDoubleEqual(double value1, double value2);
 void assertDoubleNotEqual(double value1, double value2);
 void assertPointerEqual(void *pointer1, void *pointer2);
 void assertPointerNotEqual(void *pointer1, void *pointer2);
+void assertPointerNull(void *pointer);
+void assertPointerNotNull(void *pointer);
 void assertString(char *string1, char *string2);
 void assertStringNotEqual(char *string1, char *string2);
 void assertTrue(bool status);
 void assertFalse(bool status);
 
 #endif
-

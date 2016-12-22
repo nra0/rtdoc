@@ -14,15 +14,14 @@ char assertError[512];
  *                            Structs for mock objects.
  *******************************************************************************/
 
-Box *boxCreate() {
-  Box *b = malloc(sizeof(Box));
-  return b;
+Box *boxCreate(int value) {
+  Box *box = malloc(sizeof(Box));
+  box->value = value;
+  return box;
 }
 
 void *boxCopy(void *box) {
-  Box *copy = boxCreate();
-  copy->value = ((Box*) box)->value;
-  return copy;
+  return boxCreate(((Box*) box)->value);
 }
 
 void boxFree(void *box) {
@@ -81,7 +80,7 @@ TestSuite *testSuiteCreate(char *name, void (*setup)(void), void (*teardown)(voi
  */
 void testSuiteFree(TestSuite *suite) {
   assert(suite != NULL);
-  
+
   for (int i = 0; i < suite->numTests; i++)
     free(suite->tests[i]);
   free(suite);
@@ -136,7 +135,7 @@ int testSuiteRun(TestSuite *suite) {
 
   for (int i =  0; i < suite->numTests; i++) {
     tc = suite->tests[i];
-    printf("%s                ", tc->name);
+    printf("%-40s", tc->name);
 
     *assertError = '\0';
     suite->setup();
@@ -151,7 +150,7 @@ int testSuiteRun(TestSuite *suite) {
 
     suite->teardown();
   }
-  
+
   return numFailed;
 }
 
@@ -190,6 +189,16 @@ void assertPointerNotEqual(void *value1, void *value2) {
     sprintf(assertError, "%p equals %p", value1, value2);
 }
 
+void assertPointerNull(void *pointer) {
+  if (pointer != NULL)
+    sprintf(assertError, "%p is not NULL", pointer);
+}
+
+void assertPointerNotNull(void *pointer) {
+  if (pointer == NULL)
+    sprintf(assertError, "%p is NULL", pointer);
+}
+
 void assertEqualString(char *string1, char *string2) {
   if (!strcmp(string1, string2))
     sprintf(assertError, "%s does not equal %s", string1, string2);
@@ -209,4 +218,3 @@ void assertFalse(bool status) {
   if (status)
     sprintf(assertError, "%d is not false", status);
 }
-
