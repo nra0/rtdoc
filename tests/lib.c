@@ -8,7 +8,17 @@
 
 #define SUITE_MAX_TESTS 256
 
-char assertError[512];
+#define COLOR_NORMAL    "\x1B[0m"
+#define COLOR_RED       "\x1B[31m"
+#define COLOR_GREEN     "\x1B[32m"
+#define COLOR_YELLOW    "\x1B[33m"
+#define COLOR_BLUE      "\x1B[34m"
+#define COLOR_MAGENTA   "\x1B[35m"
+#define COLOR_CYAN      "\x1B[36m"
+#define COLOR_WHITE     "\x1B[37m"
+
+char assertErrorMessage[8092];
+char *assertError;
 
 /********************************************************************************
  *                            Structs for mock objects.
@@ -48,7 +58,7 @@ typedef struct TestCase {
 struct TestSuite {
   char *name;                             /* The name of the test suite. */
   unsigned int numTests;                  /* The number of tests in the suite. */
-  TestCase *tests[SUITE_MAX_TESTS];        /* Array of test cases. */
+  TestCase *tests[SUITE_MAX_TESTS];       /* Array of test cases. */
   void (*setup)(void);                    /* The setup function. */
   void (*teardown)(void);                 /* The teardown function. */
 };
@@ -123,6 +133,14 @@ void testSuiteAdd(TestSuite *suite, char *name, void (*test)(void)) {
   suite->numTests++;
 }
 
+static void resetAssertError(void) {
+  if (assertError == NULL) {
+    assertError = malloc(sizeof(char*));
+  }
+  assertError = assertErrorMessage;
+  *assertError = '\0';
+}
+
 /*
  * Run a test suite.
  *
@@ -134,21 +152,22 @@ int testSuiteRun(TestSuite *suite) {
   int numFailed = 0;
 
   for (int i =  0; i < suite->numTests; i++) {
+    resetAssertError();
     tc = suite->tests[i];
     printf("%-40s", tc->name);
 
-    *assertError = '\0';
-    suite->setup();
-
+    if (suite->setup != NULL)
+      suite->setup();
     tc->test();
-    if (strlen(assertError)) {
-      printf("FAIL (%s)\n", assertError);
+    if (suite->teardown != NULL)
+      suite->teardown();
+
+    if (strlen(assertErrorMessage)) {
+      printf("%s✗\n%s%s%s", COLOR_RED, COLOR_MAGENTA, assertErrorMessage, COLOR_NORMAL);
       numFailed++;
     } else {
-      printf("PASS\n");
+      printf("%s✓%s\n", COLOR_GREEN, COLOR_NORMAL);
     }
-
-    suite->teardown();
   }
 
   return numFailed;
@@ -161,60 +180,60 @@ int testSuiteRun(TestSuite *suite) {
 
 void assertEqual(int value1, int value2) {
   if (value1 != value2)
-    sprintf(assertError, "%d does not equal %d", value1, value2);
+    assertError += sprintf(assertError, "%d does not equal %d\n", value1, value2);
 }
 
 void assertNotEqual(int value1, int value2) {
   if (value1 == value2)
-    sprintf(assertError, "%d equals %d", value1, value2);
+    assertError += sprintf(assertError, "%d equals %d\n", value1, value2);
 }
 
 void assertDoubleEqual(double value1, double value2) {
   if (value1 != value2)
-    sprintf(assertError, "%f does not equal %f", value1, value2);
+    assertError += sprintf(assertError, "%f does not equal %f\n", value1, value2);
 }
 
 void assertDoubleNotEqual(double value1, double value2) {
   if (value1 == value2)
-    sprintf(assertError, "%f equals %f", value1, value2);
+    assertError += sprintf(assertError, "%f equals %f\n", value1, value2);
 }
 
 void assertPointerEqual(void *value1, void *value2) {
   if (value1 != value2)
-    sprintf(assertError, "%p does not equal %p", value1, value2);
+    assertError += sprintf(assertError, "%p does not equal %p\n", value1, value2);
 }
 
 void assertPointerNotEqual(void *value1, void *value2) {
   if (value1 == value2)
-    sprintf(assertError, "%p equals %p", value1, value2);
+    assertError += sprintf(assertError, "%p equals %p\n", value1, value2);
 }
 
-void assertPointerNull(void *pointer) {
+void assertNull(void *pointer) {
   if (pointer != NULL)
-    sprintf(assertError, "%p is not NULL", pointer);
+    assertError += sprintf(assertError, "%p is not NULL\n", pointer);
 }
 
-void assertPointerNotNull(void *pointer) {
+void assertNotNull(void *pointer) {
   if (pointer == NULL)
-    sprintf(assertError, "%p is NULL", pointer);
+    assertError += sprintf(assertError, "%p is NULL\n", pointer);
 }
 
 void assertEqualString(char *string1, char *string2) {
   if (!strcmp(string1, string2))
-    sprintf(assertError, "%s does not equal %s", string1, string2);
+    assertError += sprintf(assertError, "%s does not equal %s\n", string1, string2);
 }
 
 void assertNotEqualString(char *string1, char *string2) {
   if (strcmp(string1, string2))
-    sprintf(assertError, "%s equals %s", string1, string2);
+    assertError += sprintf(assertError, "%s equals %s\n", string1, string2);
 }
 
 void assertTrue(bool status) {
   if (!status)
-    sprintf(assertError, "%d is not true", status);
+    assertError += sprintf(assertError, "%d is not true\n", status);
 }
 
 void assertFalse(bool status) {
   if (status)
-    sprintf(assertError, "%d is not false", status);
+    assertError += sprintf(assertError, "%d is not false\n", status);
 }

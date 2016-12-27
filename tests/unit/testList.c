@@ -2,48 +2,46 @@
 #include "testList.h"
 #include "../../src/list.h"
 
-#include <stdio.h>
-
 
 List *alist;
 List *llist;
 
-void setup(void) {
+static void setup(void) {
   alist = listCreate(false, &boxCopy, &boxFree, &boxEquals);
   llist = listCreate(true, &boxCopy, &boxFree, &boxEquals);
 }
 
-void teardown(void) {
+static void teardown(void) {
   listFree(alist);
   listFree(llist);
 }
 
 
-void testAlistIterBasic(void) {
+static void testAlistIterBasic(void) {
   int length = 3;
   for (int i = 0; i < length; i++)
     listAppend(alist, boxCreate(i));
   ListIter *iter = listIter(alist, false);
   for (int i = 0; i < length; i++)
-    assertPointerNotNull(listIterNext(iter));
-  assertPointerNull(listIterNext(iter));
+    assertNotNull(listIterNext(iter));
+  assertNull(listIterNext(iter));
 }
 
-void testLlistIterBasic(void) {
+static void testLlistIterBasic(void) {
   int length = 3;
   for (int i = 0; i < length; i++)
     listAppend(llist, boxCreate(i));
   ListIter *iter = listIter(llist, false);
   for (int i = 0; i < length; i++)
-    assertPointerNotNull(listIterNext(iter));
-  assertPointerNull(listIterNext(iter));
+    assertNotNull(listIterNext(iter));
+  assertNull(listIterNext(iter));
 }
 
-void testListIterReverse(void) {
+static void testListIterReverse(void) {
 
 }
 
-void testListLengthShort(void) {
+static void testListLengthShort(void) {
   int length = 4;
   for (int i = 0; i < length; i++) {
     listAppend(llist, boxCreate(i));

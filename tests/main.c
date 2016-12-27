@@ -1,10 +1,11 @@
 #include "lib.h"
 #include "unit/testList.h"
+#include "unit/testMmalloc.h"
 
 #include <stdio.h>
 
 
-#define NUM_SUITES 1 
+#define NUM_SUITES 2
 
 
 /*
@@ -13,8 +14,10 @@
 
 
 int main(int argc, char **argv) {
-  TestSuite *suites[NUM_SUITES];
-  suites[0] = listTestSuite();
+  TestSuite *suites[NUM_SUITES] = {
+    listTestSuite(),
+    mmallocTestSuite()
+  };
 
   unsigned int numRun = 0, numFailed = 0;
 
@@ -28,4 +31,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-

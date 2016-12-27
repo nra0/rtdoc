@@ -3,8 +3,6 @@
 
 #include <stdbool.h>
 
-#define __TESTING__
-
 
 /*
  * Mock structs.
@@ -18,6 +16,9 @@ Box *boxCreate(int value);
 void *boxCopy(void *box);
 void boxFree(void *box);
 int boxEquals(void *box1, void *box2);
+
+
+#define arraySize(a) (sizeof(a) / sizeof(a[0]))
 
 
 /*
@@ -41,8 +42,8 @@ void assertDoubleEqual(double value1, double value2);
 void assertDoubleNotEqual(double value1, double value2);
 void assertPointerEqual(void *pointer1, void *pointer2);
 void assertPointerNotEqual(void *pointer1, void *pointer2);
-void assertPointerNull(void *pointer);
-void assertPointerNotNull(void *pointer);
+void assertNull(void *pointer);
+void assertNotNull(void *pointer);
 void assertString(char *string1, char *string2);
 void assertStringNotEqual(char *string1, char *string2);
 void assertTrue(bool status);
