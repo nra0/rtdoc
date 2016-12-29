@@ -4,7 +4,7 @@
 #include "../../src/mmalloc.h"
 
 
-#define DEFAULT_LIST_SIZE 2
+#define DEFAULT_LIST_SIZE 64
 
 List *alist;
 List *llist;

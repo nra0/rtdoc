@@ -36,7 +36,7 @@ struct Dict {
  *
  * @return The newly created dict.
  */
-Dict *dictCreate(void) {
+Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value), int (*equalsFn)(void *value1, void *value2)) {
   return NULL;
 }
 
@@ -47,27 +47,6 @@ Dict *dictCreate(void) {
  */
 void dictFree(Dict *dict) {
 
-}
-
-/*
- * Set the function to copy an inserted value.
- */
-void dictSetCopyFn(Dict *dict, void *(*copy)(void *value)) {
-  dict->copy = copy;
-}
-
-/*
- * Set the function to free a value.
- */
-void dictSetFreeFn(Dict *dict, void (*free)(void *value)) {
-  dict->free = free;
-}
-
-/*
- * Set the equals function to compare two values.
- */
-void dictSetEqualsFn(Dict *dict, int (*equals)(void *value1, void *value2)) {
-  dict->equals = equals;
 }
 
 

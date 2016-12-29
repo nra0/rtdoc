@@ -8,11 +8,8 @@
 typedef struct Dict Dict;
 
 /* Memory management. */
-Dict *dictCreate(void);
+Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value), int (*equalsFn)(void *value1, void *value2));
 void dictFree(Dict *dict);
-void dictSetCopyFn(Dict *dict, void *(*copy)(void *value));
-void dictSetFreeFn(Dict *dict, void (*free)(void *value));
-void dictSetEqualsFn(Dict *dict, int (*equals)(void *value1, void *value2));
 
 /* Map methods. */
 unsigned int dictSize(const Dict *dict);
@@ -20,4 +17,3 @@ Dict *dictSet(Dict *dict, char *key, void *value);
 void *dictGet(const Dict *dict, char *key);
 
 #endif
-

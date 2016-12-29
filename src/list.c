@@ -472,9 +472,8 @@ List *listPrepend(List *list, void *value) {
 static List *listRemoveArray(List *list, unsigned int index) {
   list->free(list->alist->entries[index]);
 
-  if (index + 2 < list->length)
-    for (int i = index; i < list->length - 2; i++)
-      list->alist->entries[i] = list->alist->entries[i+1];
+  for (int i = index; i < list->length - 1; i++)
+    list->alist->entries[i] = list->alist->entries[i+1];
 
   return list;
 }

@@ -2,10 +2,9 @@
 #define __TEST_DICT_H__
 
 /*
- * Test the hashmap data structure.
+ * Test the hash map data structure.
  */
 
-void testDictRun(void);
+TestSuite *dictTestSuite(void);
 
 #endif
-
