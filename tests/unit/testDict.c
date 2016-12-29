@@ -18,7 +18,8 @@ static void teardown(void) {
 
 
 static void testSetSingleValue(void) {
-
+  dictSet(dict, "hello", boxCreate(42));
+  assertEqual(1, dictSize(dict));
 }
 
 

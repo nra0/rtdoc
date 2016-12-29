@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 #define DICT_NUM_BUCKETS_INITIAL 256
@@ -28,10 +29,73 @@ struct Dict {
   int (*equals)(void *value1, void *value2);
 };
 
+/*
+ * A key/value entry placed in bucket chains.
+ */
+typedef struct DictEntry {
+  char *key;    /* The key to lookup the value by. */
+  void *value;  /* The value associated with the key. */
+  Dict *dict;   /* The parent dictionary containing the entry. */
+} DictEntry;
+
 
 /**********************************************************************
  *                       Memory management.
  *********************************************************************/
+
+/*
+ * Create a new dictionary entry.
+ *
+ * @param key: The lookup key.
+ * @param value: the associated value.
+ * @return A dictionary entry holding the key/value pair.
+ */
+ static DictEntry *dictEntryCreate(Dict *dict, char *key, void *value) {
+   DictEntry *entry = mmalloc(sizeof(DictEntry));
+   entry->key = mmalloc(sizeof(char*) * strlen(key));
+   strcpy(entry->key, key);
+   entry->value = value;
+   entry->dict = dict;
+   return entry;
+ }
+
+/*
+ * Copy a dictionary entry.
+ *
+ * @param entry: The entry to copy.
+ * @return A newly allocated entry with the same information.
+ */
+ static void *dictEntryCopy(void *entry) {
+   assert(entry != NULL);
+   DictEntry *e = (DictEntry*) entry;
+   return dictEntryCreate(e->dict, e->key, e->value);
+ }
+
+/*
+ * Free a dictionary entry.
+ *
+ * @param entry: The entry to free.
+ */
+static void dictEntryFree(void *entry) {
+  assert(entry != NULL);
+  DictEntry *e = (DictEntry*) entry;
+  mfree(e->key);
+  e->dict->free(e->value);
+  mfree(entry);
+}
+
+/*
+ * Compare two dictionary entries.
+ *
+ * @param value1: The first value to compare.
+ * @param value2: The second value to compare.
+ * @return Whether first value is greater than the second.
+ */
+ static int dictEntryEquals(void *entry1, void *entry2) {
+   assert(entry1 != NULL);
+   assert(entry2 != NULL);
+   return strcmp(((DictEntry*) entry1)->key, ((DictEntry*) entry2)->key);
+ }
 
 /*
  * Create a new dictionary.
@@ -61,7 +125,7 @@ void dictFree(Dict *dict) {
 
   for (int i = 0; i < dict->numBuckets; i++)
     if (dict->buckets[i] != NULL)
-      mfree(dict->buckets[i]);
+      listFree(dict->buckets[i]);
 
   mfree(dict->buckets);
   mfree(dict);
@@ -83,6 +147,22 @@ unsigned int dictSize(const Dict *dict) {
 }
 
 /*
+ * Compute the hash function for a given string.
+ *
+ * @param key: The key to hash.
+ * @return The hash of the key, which can be used to place it in a bucket.
+ */
+static unsigned long hash(char *key) {
+  unsigned long hash = 5381;
+  char c;
+
+  while ((c = *key++) != '\0')
+    hash = ((hash << 5) + hash) + c;
+
+  return hash;
+}
+
+/*
  * Set a new value, or update an existing one.
  *
  * @param dict: The dictionary to update.
@@ -91,6 +171,17 @@ unsigned int dictSize(const Dict *dict) {
  * @return The updated dictionary.
  */
 Dict *dictSet(Dict *dict, char *key, void *value) {
+  assert(dict != NULL);
+  assert(key != NULL);
+
+  DictEntry *entry = dictEntryCreate(dict, key, value);
+  unsigned int bucket = hash(key) % dict->numBuckets;
+
+  if (dict->buckets[bucket] == NULL)
+    dict->buckets[bucket] = listCreate(LIST_TYPE_LINKED, &dictEntryCopy, &dictEntryFree, &dictEntryEquals);
+  listAppend(dict->buckets[bucket], entry);
+  dict->size++;
+
   return NULL;
 }
 
