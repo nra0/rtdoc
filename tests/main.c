@@ -5,23 +5,20 @@
 #include <stdio.h>
 
 
-#define NUM_SUITES 2
-
-
 /*
- * Procedure to import and run test suites. Options can be specified with flags.
+ * Procedure to import and run test suites.
  */
 
 
 int main(int argc, char **argv) {
-  TestSuite *suites[NUM_SUITES] = {
-    listTestSuite(),
-    mmallocTestSuite()
+  TestSuite *suites[] = {
+    mmallocTestSuite(),
+    listTestSuite()
   };
 
   unsigned int numRun = 0, numFailed = 0;
 
-  for (int i = 0; i < NUM_SUITES; i++) {
+  for (int i = 0; i < arraySize(suites); i++) {
     printf("SUITE: %s\n", testSuiteName(suites[i]));
     numRun += testSuiteNumTests(suites[i]);
     numFailed += testSuiteRun(suites[i]);

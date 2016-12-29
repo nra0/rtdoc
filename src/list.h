@@ -7,12 +7,15 @@
  * A generic list, which can be implemented as either an array or linked data structure.
  */
 
+#define LIST_ITER_FORWARD false
+#define LIST_ITER_REVERSE true
+
 
 typedef struct List List;
 typedef struct ListIter ListIter;
 
 /* Memory managment. */
-List *listCreate(bool linked, void *(*copy)(void *value), void (*free)(void *value), int (*equals)(void *value1, void *value2));
+List *listCreate(bool linked, void *(*copyFn)(void *value), void (*freeFn)(void *value), int (*equalsFn)(void *value1, void *value2));
 void listFree(List *list);
 
 /* List getters. */
@@ -29,6 +32,6 @@ List *listRemove(List *list, unsigned int index);
 /* List iteration. */
 ListIter *listIter(List *list, bool reverse);
 void *listIterNext(ListIter *iter);
+void listIterFree(ListIter *iter);
 
 #endif
-

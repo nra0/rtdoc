@@ -28,7 +28,7 @@ typedef enum allocType {
  * @param size: The number of bytes about to be allocated.
  * @returns Whether the memory limit will be satisfied.
  */
-inline static bool canAllocate(size_t size) {
+static bool canAllocate(size_t size) {
   return mLimit == 0 || (size + totalAllocated <= mLimit);
 }
 
@@ -89,7 +89,7 @@ static void *allocate(size_t size, allocType type, void *ptr) {
  * @param size: The number of bytes to allocate.
  * @return The pointer to the allocated memory.
  */
-inline void *mmalloc(size_t size) {
+void *mmalloc(size_t size) {
   return allocate(size, T_MALLOC, NULL);
 }
 
@@ -99,7 +99,7 @@ inline void *mmalloc(size_t size) {
  * @param size: The number of bytes to allocate.
  * @return The pointer to the memory.
  */
-inline void *mcalloc(size_t size) {
+void *mcalloc(size_t size) {
   return allocate(size, T_CALLOC, NULL);
 }
 
@@ -110,7 +110,7 @@ inline void *mcalloc(size_t size) {
  * @param size: The new number of bytes.
  * @return The new pointer.
  */
-inline void *mrealloc(void *ptr, size_t size) {
+void *mrealloc(void *ptr, size_t size) {
   return allocate(size, T_REALLOC, ptr);
 }
 
@@ -142,7 +142,7 @@ void mfree(void *ptr) {
  *
  * @return The memory limit.
  */
-inline size_t memoryLimit(void) {
+size_t memoryLimit(void) {
   return mLimit;
 }
 
@@ -153,7 +153,7 @@ inline size_t memoryLimit(void) {
  *
  * @param size: The new limit.
  */
-inline void setMemoryLimit(size_t size) {
+void setMemoryLimit(size_t size) {
   mLimit = size;
 }
 
@@ -163,7 +163,7 @@ inline void setMemoryLimit(size_t size) {
  *
  * @return The number of bytes currently allocated.
  */
-inline size_t memoryUsage(void) {
+size_t memoryUsage(void) {
   return totalAllocated;
 }
 

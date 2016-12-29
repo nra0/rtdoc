@@ -35,8 +35,12 @@ void *boxCopy(void *box) {
 }
 
 void boxFree(void *box) {
+  free(box);
+}
+
+int boxValue(void *box) {
   Box *b = (Box*) box;
-  free(b);
+  return b->value;
 }
 
 int boxEquals(void *box1, void *box2) {
@@ -218,12 +222,12 @@ void assertNotNull(void *pointer) {
     assertError += sprintf(assertError, "%p is NULL\n", pointer);
 }
 
-void assertEqualString(char *string1, char *string2) {
+void assertStringEqual(char *string1, char *string2) {
   if (!strcmp(string1, string2))
     assertError += sprintf(assertError, "%s does not equal %s\n", string1, string2);
 }
 
-void assertNotEqualString(char *string1, char *string2) {
+void assertStringNotEqual(char *string1, char *string2) {
   if (strcmp(string1, string2))
     assertError += sprintf(assertError, "%s equals %s\n", string1, string2);
 }

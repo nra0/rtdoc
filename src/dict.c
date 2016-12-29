@@ -14,7 +14,7 @@
 
 /*
  * A basic hashmap with string keys and generic values.
- * 
+ *
  * The caller should instantiate methods to copy, free, and check equality.
  */
 struct Dict {
@@ -52,21 +52,21 @@ void dictFree(Dict *dict) {
 /*
  * Set the function to copy an inserted value.
  */
-inline void dictSetCopyFn(Dict *dict, void *(*copy)(void *value)) {
-  dict->copy = copy; 
+void dictSetCopyFn(Dict *dict, void *(*copy)(void *value)) {
+  dict->copy = copy;
 }
 
 /*
  * Set the function to free a value.
  */
-inline void dictSetFreeFn(Dict *dict, void (*free)(void *value)) {
+void dictSetFreeFn(Dict *dict, void (*free)(void *value)) {
   dict->free = free;
 }
 
 /*
  * Set the equals function to compare two values.
  */
-inline void dictSetEqualsFn(Dict *dict, int (*equals)(void *value1, void *value2)) {
+void dictSetEqualsFn(Dict *dict, int (*equals)(void *value1, void *value2)) {
   dict->equals = equals;
 }
 
@@ -82,7 +82,7 @@ inline void dictSetEqualsFn(Dict *dict, int (*equals)(void *value1, void *value2
  * @return The number of entries in the dict.
  */
 inline unsigned int dictSize(const Dict *dict) {
-  return dict->size; 
+  return dict->size;
 }
 
 /*
@@ -107,4 +107,3 @@ Dict *dictSet(Dict *dict, char *key, void *value) {
 void *dictGet(const Dict *dict, char *key) {
   return NULL;
 }
-
