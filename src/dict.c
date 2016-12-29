@@ -1,6 +1,8 @@
 #include "dict.h"
 #include "list.h"
+#include "mmalloc.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 
@@ -37,7 +39,16 @@ struct Dict {
  * @return The newly created dict.
  */
 Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value), int (*equalsFn)(void *value1, void *value2)) {
-  return NULL;
+  Dict *dict = mmalloc(sizeof(Dict));
+
+  dict->size = 0;
+  dict->numBuckets = DICT_NUM_BUCKETS_INITIAL;
+  dict->buckets = mcalloc(sizeof(List*) * dict->numBuckets);
+  dict->copy = copyFn;
+  dict->equals = equalsFn;
+  dict->free = freeFn != NULL ? freeFn : &free;
+
+  return dict;
 }
 
 /*
@@ -46,7 +57,14 @@ Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value), int 
  * @param dict: The dictionary to free.
  */
 void dictFree(Dict *dict) {
+  assert(dict != NULL);
 
+  for (int i = 0; i < dict->numBuckets; i++)
+    if (dict->buckets[i] != NULL)
+      mfree(dict->buckets[i]);
+
+  mfree(dict->buckets);
+  mfree(dict);
 }
 
 
@@ -60,7 +78,7 @@ void dictFree(Dict *dict) {
  * @param dict: The dict whose size to get.
  * @return The number of entries in the dict.
  */
-inline unsigned int dictSize(const Dict *dict) {
+unsigned int dictSize(const Dict *dict) {
   return dict->size;
 }
 
