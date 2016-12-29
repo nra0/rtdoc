@@ -26,7 +26,6 @@ struct Dict {
   List **buckets;           /* Linked lists to chain values with the same hash. */
   void *(*copy)(void *value);
   void (*free)(void *value);
-  int (*equals)(void *value1, void *value2);
 };
 
 /*
@@ -102,14 +101,13 @@ static void dictEntryFree(void *entry) {
  *
  * @return The newly created dict.
  */
-Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value), int (*equalsFn)(void *value1, void *value2)) {
+Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value)) {
   Dict *dict = mmalloc(sizeof(Dict));
 
   dict->size = 0;
   dict->numBuckets = DICT_NUM_BUCKETS_INITIAL;
   dict->buckets = mcalloc(sizeof(List*) * dict->numBuckets);
   dict->copy = copyFn;
-  dict->equals = equalsFn;
   dict->free = freeFn != NULL ? freeFn : &free;
 
   return dict;
@@ -163,6 +161,17 @@ static unsigned long hash(char *key) {
 }
 
 /*
+ * Get the bucket corresponding to the given key.
+ *
+ * @param dict: The dict to search.
+ * @param key: The key to lookup.
+ * @return The index of the corresponding bucket.
+ */
+static unsigned int getBucket(const Dict *dict, char *key) {
+  return hash(key) % dict->numBuckets;
+}
+
+/*
  * Set a new value, or update an existing one.
  *
  * @param dict: The dictionary to update.
@@ -175,7 +184,7 @@ Dict *dictSet(Dict *dict, char *key, void *value) {
   assert(key != NULL);
 
   DictEntry *entry = dictEntryCreate(dict, key, value);
-  unsigned int bucket = hash(key) % dict->numBuckets;
+  int bucket = getBucket(dict, key);
 
   if (dict->buckets[bucket] == NULL)
     dict->buckets[bucket] = listCreate(LIST_TYPE_LINKED, &dictEntryCopy, &dictEntryFree, &dictEntryEquals);
@@ -193,5 +202,24 @@ Dict *dictSet(Dict *dict, char *key, void *value) {
  * @return The value at the key.
  */
 void *dictGet(const Dict *dict, char *key) {
-  return NULL;
+  assert(dict != NULL);
+  assert(key != NULL);
+
+  List *list = dict->buckets[getBucket(dict, key)];
+  if (list == NULL)
+    return NULL;
+
+  void *ret = NULL;
+  DictEntry *entry;
+  ListIter *iter = listIter(list, LIST_ITER_FORWARD);
+
+  while ((entry = listIterNext(iter)) != NULL) {
+    if (!strcmp(key, entry->key)) {
+      ret = entry->value;
+      break;
+    }
+  }
+
+  listIterFree(iter);
+  return ret;
 }

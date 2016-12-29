@@ -8,7 +8,7 @@ Dict *dict;
 
 
 static void setup(void) {
-  dict = dictCreate(&boxCopy, &boxFree, &boxEquals);
+  dict = dictCreate(&boxCopy, &boxFree);
 }
 
 static void teardown(void) {
@@ -17,14 +17,15 @@ static void teardown(void) {
 }
 
 
-static void testSetSingleValue(void) {
-  dictSet(dict, "hello", boxCreate(42));
+static void testSingleValue(void) {
+  dictSet(dict, "key", boxCreate(42));
   assertEqual(1, dictSize(dict));
+  assertEqual(42, boxValue(dictGet(dict, "key")));
 }
 
 
 TestSuite *dictTestSuite() {
   TestSuite *suite = testSuiteCreate("hash map", &setup, &teardown);
-  testSuiteAdd(suite, "set single value", &testSetSingleValue);
+  testSuiteAdd(suite, "set and get single value", &testSingleValue);
   return suite;
 }
