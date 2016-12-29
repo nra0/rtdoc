@@ -40,7 +40,6 @@ Json *JsonCreateDouble(double value);
 Json *JsonCreateString(char *value);
 Json *JsonCreateArray(List *list);
 Json *JsonCreateObject(Dict *dict);
-
 void JsonFree(Json *json);
 
 /* Conversions. */
