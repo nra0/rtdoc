@@ -105,9 +105,9 @@ static void *listIterNextArray(ListIter *iter) {
   if (iter->index < 0 || iter->index >= iter->list->length)
     return NULL;
   if (iter->reverse)
-    return iter->list->alist->entries + iter->index--;
+    return iter->list->alist->entries[iter->index--];
   else
-    return iter->list->alist->entries + iter->index++;
+    return iter->list->alist->entries[iter->index++];
 }
 
 /*
@@ -194,7 +194,7 @@ static LinkedList *listCreateLinked(void) {
  * Get a value from an array list at an index.
  */
 static void *listGetArray(const List *list, unsigned int index) {
-  return list->alist->entries + index;
+  return list->alist->entries[index];
 }
 
 /*
@@ -254,8 +254,12 @@ List *listCreate(bool linked, void *(*copyFn)(void *value), void (*freeFn)(void 
  * Free an array list.
  */
 static void listFreeArray(List *list) {
-  for (int i = 0; i < list->length; i++)
-    list->free(listGetArray(list, i));
+  void *entry;
+  ListIter *iter = listIter(list, LIST_ITER_FORWARD);
+
+  while ((entry = listIterNext(iter)) != NULL)
+    list->free(entry);
+  listIterFree(iter);
   mfree(list->alist->entries);
   mfree(list->alist);
 }
@@ -324,25 +328,17 @@ void *listGet(const List *list, unsigned int index) {
 }
 
 /*
- * Find a value in an array list.
+ * Get the index of the first occurrence of a value in a list.
+ *
+ * Returns -1 if the value is not found.
+ *
+ * @param list: The list to search.
+ * @param value:  The value to search for.
+ * @return The index of the value.
  */
-static int listIndexArray(const List *list, void *value) {
-  int index = -1;
+int listIndex(const List *list, void *value) {
+  assert(list != NULL);
 
-  for (int i = 0; i < list->length; i++) {
-    if (list->equals(list->alist->entries + i, value)) {
-      index = i;
-      break;
-    }
-  }
-
-  return index;
-}
-
-/*
- * Find a value in a linked list.
- */
-static int listIndexLinked(const List *list, void *value) {
   ListIter *iter;
   int index = -1;
 
@@ -356,24 +352,6 @@ static int listIndexLinked(const List *list, void *value) {
   listIterFree(iter);
 
   return index;
-}
-
-/*
- * Get the index of the first occurrence of a value in a list.
- *
- * Returns -1 if the value is not found.
- *
- * @param list: The list to search.
- * @param value:  The value to search for.
- * @return The index of the value.
- */
-int listIndex(const List *list, void *value) {
-  assert(list != NULL);
-
-  if (list->linked)
-    return listIndexLinked(list, value);
-  else
-    return listIndexArray(list, value);
 }
 
 
@@ -394,12 +372,12 @@ static List *listInsertArray(List *list, int index, void *value) {
 
   if (index < 0) {
     /* Append to end of list. */
-    memcpy(list->alist->entries + list->length, value, sizeof(void*));
+    list->alist->entries[list->length] = value;
   } else {
     /* Insert into list. */
-    for (int i = list->length; i >= index; i++)
-      memcpy(list->alist->entries + i, list->alist->entries + i - 1, sizeof(void*));
-    memcpy(list->alist->entries + index, value, sizeof(void*));
+    for (int i = list->length; i > index; i--)
+      list->alist->entries[i] = list->alist->entries[i-1];
+    list->alist->entries[index] = value;
   }
 
   return list;
@@ -492,10 +470,11 @@ List *listPrepend(List *list, void *value) {
  * Remove a value from an array list.
  */
 static List *listRemoveArray(List *list, unsigned int index) {
-  list->free(list->alist->entries + index);
+  list->free(list->alist->entries[index]);
 
-  for (int i = index; i < list->length - 1; i++)
-    memcpy(list->alist->entries + i + 1, list->alist->entries + i, sizeof(void*));
+  if (index + 2 < list->length)
+    for (int i = index; i < list->length - 2; i++)
+      list->alist->entries[i] = list->alist->entries[i+1];
 
   return list;
 }

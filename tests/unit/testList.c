@@ -4,16 +4,18 @@
 #include "../../src/mmalloc.h"
 
 
-#define DEFAULT_LIST_SIZE 64
+#define DEFAULT_LIST_SIZE 2
 
 List *alist;
 List *llist;
 
 static void setup(void) {
-  llist = listCreate(true, &boxCopy, &boxFree, &boxEquals);
+  alist = listCreate(LIST_TYPE_ARRAY, &boxCopy, &boxFree, &boxEquals);
+  llist = listCreate(LIST_TYPE_LINKED, &boxCopy, &boxFree, &boxEquals);
 }
 
 static void teardown(void) {
+  listFree(alist);
   listFree(llist);
   assertEqual(0, memoryUsage());
 }
@@ -27,7 +29,7 @@ static void testListAppendHelper(List *list) {
 }
 
 static void testListAppend(void) {
-  //testListAppend(alist);
+  testListAppendHelper(alist);
   testListAppendHelper(llist);
 }
 
@@ -40,7 +42,7 @@ static void testListPrependHelper(List *list) {
 }
 
 static void testListPrepend(void) {
-  //testListPrepend(alist);
+  testListPrependHelper(alist);
   testListPrependHelper(llist);
 }
 
@@ -55,7 +57,7 @@ static void testListInsertHelper(List *list) {
 }
 
 static void testListInsert(void) {
-  //testListInsert(alist);
+  testListInsertHelper(alist);
   testListInsertHelper(llist);
 }
 
@@ -69,7 +71,7 @@ static void testListIndexHelper(List *list) {
 }
 
 static void testListIndex(void) {
-  //tetListIndex(alist);
+  testListIndexHelper(alist);
   testListIndexHelper(llist);
 }
 
@@ -83,7 +85,7 @@ static void testListRemoveHelper(List *list) {
 }
 
 static void testListRemove(void) {
-  //testListRemove(alist);
+  testListRemoveHelper(alist);
   testListRemoveHelper(llist);
 }
 
@@ -100,12 +102,12 @@ static void testListIterHelper(List *list, bool reverse) {
 }
 
 static void testListIterForward(void) {
-  // testListIterHelper(alist, LIST_ITER_FORWARD);
+  testListIterHelper(alist, LIST_ITER_FORWARD);
   testListIterHelper(llist, LIST_ITER_FORWARD);
 }
 
 static void testListIterReverse(void) {
-  // testListIterHelper(alist, LIST_ITER_REVERSE)
+  testListIterHelper(alist, LIST_ITER_REVERSE);
   testListIterHelper(llist, LIST_ITER_REVERSE);
 }
 

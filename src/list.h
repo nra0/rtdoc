@@ -9,6 +9,8 @@
 
 #define LIST_ITER_FORWARD false
 #define LIST_ITER_REVERSE true
+#define LIST_TYPE_ARRAY   false
+#define LIST_TYPE_LINKED  true
 
 
 typedef struct List List;
