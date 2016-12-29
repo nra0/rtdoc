@@ -15,11 +15,11 @@ size_t totalAllocated;                /* The amount of memory allocated so far. 
 void (*OOMHandler)(size_t size);      /* The user set OOM handler function */
 
 /* The types of ways we can allocate memory. */
-typedef enum allocType {
+typedef enum AllocType {
   T_MALLOC,
   T_CALLOC,
   T_REALLOC
-} allocType;
+} AllocType;
 
 
 /*
@@ -58,7 +58,7 @@ static void mmallocOOM(size_t size) {
  * @param ptr: If reallocating, the original pointer.
  * @return The pointer to the memory.
  */
-static void *allocate(size_t size, allocType type, void *ptr) {
+static void *allocate(size_t size, AllocType type, void *ptr) {
   size_t *pointer;
   size_t allocSize = PREFIX_SIZE + size;
 
