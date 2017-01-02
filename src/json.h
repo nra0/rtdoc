@@ -9,13 +9,13 @@
  */
 
 typedef enum JsonType {
-  JsonNull,
-  JsonBool,
-  JsonInt,
-  JsonDouble,
-  JsonString,
-  JsonArray,
-  JsonObject
+  JSON_NULL,
+  JSON_BOOL,
+  JSON_INT,
+  JSON_DOUBLE,
+  JSON_STRING,
+  JSON_ARRAY,
+  JSON_OBJECT
 } JsonType;
 
 typedef struct Json {
@@ -31,6 +31,7 @@ typedef struct Json {
 } Json;
 
 /* Memory management. */
+Json *JsonCreate(void);
 Json *JsonCreateNull(void);
 Json *JsonCreateBool(bool value);
 Json *JsonCreateTrue(void);
@@ -43,7 +44,7 @@ Json *JsonCreateObject(Dict *dict);
 void JsonFree(Json *json);
 
 /* Conversions. */
-Json *JsonParse(const char *json);
+Json *JsonParse(const char *content, char **err);
 char *JsonStringify(const Json *json);
 
 #endif
