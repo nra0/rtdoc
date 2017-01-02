@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <math.h>
 #include <string.h>
 
 
@@ -147,11 +148,25 @@ void JsonFree(Json *json) {
 #define NULL_LEN      4
 #define TRUE_LEN      4
 #define FALSE_LEN     5
+#define POSITIVE      '+'
 #define NEGATIVE      '-'
+#define DECIMAL       '.'
+#define ZERO          '0'
+#define BASE          10
+#define EXPONENT      'e'
 #define WS_LIMIT      ' '
 
 /* Utility macros. */
 #define inc(p)        (p + 1)
+#define ctoi(n)       (n - '0')
+
+/*
+ * Parsing failure.
+ */
+static const char *fail(const char *content, const char **err) {
+  *err = content;
+  return false;
+}
 
 /*
  * Skip all the beginning whitespace of a string.
@@ -162,35 +177,79 @@ static const char *skip(const char *content) {
 }
 
 
-static const char *parseNext(Json *json, const char *content);
+static const char *parseNext(Json *json, const char *content, const char **err);
 
-static const char *parseNumber(Json *json, const char *content) {
+static const char *parseNumber(Json *json, const char *content, const char **err) {
+  double n = 0;
+  int sign = 1, expSign = 1, exp = 0, scale = 0;
+
+  /* Check for negative numbers. */
+  if (*content == NEGATIVE)
+    sign = -1, content++;
+
+  /* Skip leading zeros. */
+  while (*content == ZERO)
+    content++;
+
+  /* Numbers up to the decimal. */
+  while (isdigit(*content))
+    n = (n * BASE) + ctoi(*content++);
+
+  /* After the decimal. */
+  if (*content == DECIMAL)
+    while (isdigit(*++content))
+      n = (n * BASE) + ctoi(*content), scale--;
+
+  /* Handle exponenents. */
+  if (tolower(*content) == EXPONENT) {
+    content++;
+    if (*content == POSITIVE)
+      content++;
+    else if (*content == NEGATIVE)
+      expSign = -1, content++;
+    while (isdigit(*content))
+      exp = (exp * BASE) + ctoi(*content++);
+  }
+
+  n = sign * n * pow(BASE, scale + expSign * exp);
+
+  int m = (int) n;
+  if (n - (double) m == 0.0) {
+    /* It is an integer. */
+    json->type = JSON_INT;
+    json->intValue = m;
+  } else {
+    /* It is a double. */
+    json->type = JSON_DOUBLE;
+    json->doubleValue = n;
+  }
+
+  return content;
+}
+
+static const char *parseString(Json *json, const char *content, const char **err) {
   return false;
 }
 
-static const char *parseString(Json *json, const char *content) {
+static const char *parseArray(Json *json, const char *content, const char **err) {
   return false;
 }
 
-static const char *parseArray(Json *json, const char *content) {
+static const char *parseObject(Json *json, const char *content, const char **err) {
   return false;
 }
 
-static const char *parseObject(Json *json, const char *content) {
-  return false;
-}
-
-static const char *parseNext(Json *json, const char *content) {
+static const char *parseNext(Json *json, const char *content, const char **err) {
   if (!content) return false;
 
   /* Check what type of Json object we are dealing with. */
   switch (*content) {
-    case STRING_SEP     : return parseString(json, content);
-    case ARRAY_BEGIN    : return parseArray(json, content);
-    case OBJECT_BEGIN   : return parseObject(json, content);
+    case STRING_SEP     : return parseString(json, content, err);
+    case ARRAY_BEGIN    : return parseArray(json, content, err);
+    case OBJECT_BEGIN   : return parseObject(json, content, err);
   }
 
-  if (*content == NEGATIVE || isdigit(*content)) return parseNumber(json, content);
+  if (*content == NEGATIVE || isdigit(*content)) return parseNumber(json, content, err);
 
   /* Check for literals. */
   if (!strncmp(content, NULL_LITERAL, NULL_LEN)) {
@@ -207,7 +266,7 @@ static const char *parseNext(Json *json, const char *content) {
   }
 
   /* Invalid input. */
-  return false;
+  return fail(content, err);
 }
 
 /*
@@ -216,16 +275,16 @@ static const char *parseNext(Json *json, const char *content) {
  * @param json: The string to parse.
  * @return The parsed Json object.
  */
-Json *JsonParse(const char *content, char **err) {
+Json *JsonParse(const char *content, const char **err) {
   Json *json = JsonCreate();
-  const char *end = parseNext(json, skip(content));
+  const char *end = parseNext(json, skip(content), err);
 
   if (!end) {
     /* Parsing error. */
     JsonFree(json);
     return false;
   }
-  
+
   /* Success! */
   return json;
 }
