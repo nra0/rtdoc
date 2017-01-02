@@ -187,6 +187,9 @@ static const char *parseNumber(Json *json, const char *content, const char **err
   if (*content == NEGATIVE)
     sign = -1, content++;
 
+  /* Make sure we have a number. */
+  if (!isdigit(*content)) return fail(content, err);
+
   /* Skip leading zeros. */
   while (*content == ZERO)
     content++;
@@ -228,11 +231,48 @@ static const char *parseNumber(Json *json, const char *content, const char **err
 }
 
 static const char *parseString(Json *json, const char *content, const char **err) {
-  return false;
+  if (*content != STRING_SEP) return fail(content, err);
+
+  int len = 0;
+  char *value;
+  const char *end;
+
+  /* Find the length of the string. */
+  for (end = ++content; *end != STRING_SEP; len++, end++)
+    if (*end == ESCAPE)
+      end++;
+
+  if (*end != STRING_SEP) return fail(end, err);
+
+  value = mmalloc(len + 1);
+  json->type = JSON_STRING;
+  json->stringValue = value;
+
+  /* Copy the string. */
+  while (content < end) {
+    if (*content == ESCAPE) {
+      /* Escaped character. */
+      content++;
+      switch (*content) {
+        case 'b': *value = '\b'; break;
+        case 'f': *value = '\f'; break;
+        case 'n': *value = '\n'; break;
+        case 'r': *value = '\r'; break;
+        case 't': *value = '\t'; break;
+        default: *value = *content;
+      }
+    } else {
+      *value = *content;
+    }
+    value++, content++;
+  }
+
+  return inc(content);
 }
 
 static const char *parseArray(Json *json, const char *content, const char **err) {
-  return false;
+  if (*content != ARRAY_BEGIN) return fail(content, err);
+  return inc(content);
 }
 
 static const char *parseObject(Json *json, const char *content, const char **err) {
