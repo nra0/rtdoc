@@ -10,7 +10,7 @@ Dict *dict;
 
 
 static void setup(void) {
-  dict = dictCreate(&boxCopy, &boxFree);
+  dict = dictCreate(&boxFree);
 }
 
 static void teardown(void) {

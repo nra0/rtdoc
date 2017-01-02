@@ -10,8 +10,8 @@ List *alist;
 List *llist;
 
 static void setup(void) {
-  alist = listCreate(LIST_TYPE_ARRAY, &boxCopy, &boxFree, &boxEquals);
-  llist = listCreate(LIST_TYPE_LINKED, &boxCopy, &boxFree, &boxEquals);
+  alist = listCreate(LIST_TYPE_ARRAY, &boxFree);
+  llist = listCreate(LIST_TYPE_LINKED, &boxFree);
 }
 
 static void teardown(void) {
@@ -61,20 +61,6 @@ static void testListInsert(void) {
   testListInsertHelper(llist);
 }
 
-static void testListIndexHelper(List *list) {
-  listAppend(list, boxCreate(0));
-  listAppend(list, boxCreate(1));
-  Box *key0 = boxCreate(0), *key1 = boxCreate(1);
-  assertEqual(0, listIndex(list, key0));
-  assertEqual(1, listIndex(list, key1));
-  boxFree(key0); boxFree(key1);
-}
-
-static void testListIndex(void) {
-  testListIndexHelper(alist);
-  testListIndexHelper(llist);
-}
-
 static void testListRemoveHelper(List *list) {
   for (int i = 0; i < DEFAULT_LIST_SIZE; i++)
     listAppend(list, boxCreate(i));
@@ -117,7 +103,6 @@ TestSuite *listTestSuite() {
   testSuiteAdd(suite, "list append", &testListAppend);
   testSuiteAdd(suite, "list prepend", &testListPrepend);
   testSuiteAdd(suite, "list insert", &testListInsert);
-  testSuiteAdd(suite, "list index lookup", &testListIndex);
   testSuiteAdd(suite, "list remove", &testListRemove);
   testSuiteAdd(suite, "list iter forward", &testListIterForward);
   testSuiteAdd(suite, "list iter reverse", &testListIterReverse);

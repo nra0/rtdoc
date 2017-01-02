@@ -30,10 +30,6 @@ Box *boxCreate(int value) {
   return box;
 }
 
-void *boxCopy(void *box) {
-  return boxCreate(((Box*) box)->value);
-}
-
 void boxFree(void *box) {
   free(box);
 }
@@ -41,12 +37,6 @@ void boxFree(void *box) {
 int boxValue(void *box) {
   Box *b = (Box*) box;
   return b->value;
-}
-
-int boxEquals(void *box1, void *box2) {
-  Box *b1 = (Box*) box1;
-  Box *b2 = (Box*) box2;
-  return b1->value == b2->value;
 }
 
 

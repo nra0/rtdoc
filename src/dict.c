@@ -18,13 +18,12 @@
 /*
  * A basic hashmap with string keys and generic values.
  *
- * The caller should instantiate methods to copy, free, and check equality.
+ * The caller should instantiate methods to free the value.
  */
 struct Dict {
   unsigned int size;        /* How many entries are in the dict. */
   unsigned int numBuckets;  /* The number of buckets. */
   List **buckets;           /* Linked lists to chain values with the same hash. */
-  void *(*copy)(void *value);
   void (*free)(void *value);
 };
 
@@ -59,18 +58,6 @@ typedef struct DictEntry {
  }
 
 /*
- * Copy a dictionary entry.
- *
- * @param entry: The entry to copy.
- * @return A newly allocated entry with the same information.
- */
- static void *dictEntryCopy(void *entry) {
-   assert(entry != NULL);
-   DictEntry *e = (DictEntry*) entry;
-   return dictEntryCreate(e->dict, e->key, e->value);
- }
-
-/*
  * Free a dictionary entry.
  *
  * @param entry: The entry to free.
@@ -84,30 +71,16 @@ static void dictEntryFree(void *entry) {
 }
 
 /*
- * Compare two dictionary entries.
- *
- * @param value1: The first value to compare.
- * @param value2: The second value to compare.
- * @return Whether first value is greater than the second.
- */
- static int dictEntryEquals(void *entry1, void *entry2) {
-   assert(entry1 != NULL);
-   assert(entry2 != NULL);
-   return strcmp(((DictEntry*) entry1)->key, ((DictEntry*) entry2)->key);
- }
-
-/*
  * Create a new dictionary.
  *
  * @return The newly created dict.
  */
-Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value)) {
+Dict *dictCreate(void (*freeFn)(void *value)) {
   Dict *dict = mmalloc(sizeof(Dict));
 
   dict->size = 0;
   dict->numBuckets = DICT_NUM_BUCKETS_INITIAL;
   dict->buckets = mcalloc(sizeof(List*) * dict->numBuckets);
-  dict->copy = copyFn;
   dict->free = freeFn != NULL ? freeFn : &free;
 
   return dict;
@@ -187,7 +160,7 @@ Dict *dictSet(Dict *dict, char *key, void *value) {
   int bucket = getBucket(dict, key);
 
   if (dict->buckets[bucket] == NULL)
-    dict->buckets[bucket] = listCreate(LIST_TYPE_LINKED, &dictEntryCopy, &dictEntryFree, &dictEntryEquals);
+    dict->buckets[bucket] = listCreate(LIST_TYPE_LINKED, &dictEntryFree);
   listAppend(dict->buckets[bucket], entry);
   dict->size++;
 

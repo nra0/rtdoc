@@ -17,13 +17,12 @@ typedef struct List List;
 typedef struct ListIter ListIter;
 
 /* Memory managment. */
-List *listCreate(bool linked, void *(*copyFn)(void *value), void (*freeFn)(void *value), int (*equalsFn)(void *value1, void *value2));
+List *listCreate(bool linked, void (*freeFn)(void *value));
 void listFree(List *list);
 
 /* List getters. */
 unsigned int listLength(const List *list);
 void *listGet(const List *list, unsigned int index);
-int listIndex(const List *list, void *value);
 
 /* List setters. */
 List *listInsert(List *list, int index, void *value);

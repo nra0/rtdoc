@@ -8,7 +8,7 @@
 typedef struct Dict Dict;
 
 /* Memory management. */
-Dict *dictCreate(void *(*copyFn)(void *value), void (*freeFn)(void *value));
+Dict *dictCreate(void (*freeFn)(void *value));
 void dictFree(Dict *dict);
 
 /* Map methods. */

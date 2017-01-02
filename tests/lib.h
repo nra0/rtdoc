@@ -13,10 +13,8 @@ typedef struct Box {
 } Box;
 
 Box *boxCreate(int value);
-void *boxCopy(void *box);
 void boxFree(void *box);
 int boxValue(void *box);
-int boxEquals(void *box1, void *box2);
 
 
 #define arraySize(a) (sizeof(a) / sizeof(a[0]))

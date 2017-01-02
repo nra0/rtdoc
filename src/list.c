@@ -54,7 +54,7 @@ typedef struct ArrayList {
  * A list object, which can be either array or link based.
  *
  * If the value being inserted is not a primitive type, the caller should supply
- * methods to copy, free, and check equality for the value.
+ * methods to free the value.
  */
 struct List {
   bool linked;          /* True if linked list, false if array list. */
@@ -63,9 +63,7 @@ struct List {
     LinkedList *llist;  /* Pointer to the underlying array list. */
     ArrayList *alist;   /* Pointer to the underlying linked list. */
   };
-  void *(*copy)(void *value);
   void (*free)(void *value);
-  int (*equals)(void *value1, void *value2);
 };
 
 
@@ -229,12 +227,10 @@ static void *listGetLinked(const List *list, unsigned int index) {
  * Create a new list, returning a NULL pointer on error.
  *
  * @param type: The type of list to create (either `LIST_TYPE_ARRAY` or `LIST_TYPE_LINKED`).
- * @param copy: Function to copy the list value.
  * @param free: Function to free the list value.
- * @param equals: Comparator between two values.
  * @return The newly created list.
  */
-List *listCreate(bool linked, void *(*copyFn)(void *value), void (*freeFn)(void *value), int (*equalsFn)(void *value1, void *value2)) {
+List *listCreate(bool linked, void (*freeFn)(void *value)) {
   List *list = mcalloc(sizeof(List));
   list->linked = linked;
 
@@ -243,8 +239,6 @@ List *listCreate(bool linked, void *(*copyFn)(void *value), void (*freeFn)(void 
   else
     list->alist = listCreateArray();
 
-  list->copy = copyFn;
-  list->equals = equalsFn;
   list->free = freeFn != NULL ? freeFn : &free;
 
   return list;
@@ -325,33 +319,6 @@ void *listGet(const List *list, unsigned int index) {
     return listGetLinked(list, index);
   else
     return listGetArray(list, index);
-}
-
-/*
- * Get the index of the first occurrence of a value in a list.
- *
- * Returns -1 if the value is not found.
- *
- * @param list: The list to search.
- * @param value:  The value to search for.
- * @return The index of the value.
- */
-int listIndex(const List *list, void *value) {
-  assert(list != NULL);
-
-  ListIter *iter;
-  int index = -1;
-
-  iter = listIter((List*) list, LIST_ITER_FORWARD);
-  for (int i = 0; i < list->length; i++) {
-    if (list->equals(listIterNext(iter), value)) {
-      index = i;
-      break;
-    }
-  }
-  listIterFree(iter);
-
-  return index;
 }
 
 
