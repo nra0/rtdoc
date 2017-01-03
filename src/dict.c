@@ -144,6 +144,41 @@ static unsigned int getBucket(const Dict *dict, char *key) {
   return hash(key) % dict->numBuckets;
 }
 
+static int getDictEntry(List *list, char *key, DictEntry **entry) {
+  int length = listLength(list);
+
+  if (length == 0)
+    return -1;
+
+  if (length == 1) {
+    /* Common case. */
+    *entry = listGet(list, 0);
+    if (strcmp(key, (*entry)->key)) {
+      /* Wrong key. */
+      *entry = NULL;
+      return -1;
+    }
+    return 0;
+  }
+
+  /* Multiple entries in the list. */
+  int index = 0;
+  ListIter *iter = listIter(list, LIST_ITER_FORWARD);
+
+  while ((*entry = listIterNext(iter)) != NULL) {
+    if (!strcmp(key, (*entry)->key)) {
+      /* Found a match! */
+      listIterFree(iter);
+      return index;
+    }
+    index++;
+  }
+  /* Did not find the key. */
+  *entry = NULL;
+  listIterFree(iter);
+  return -1;
+}
+
 /*
  * Set a new value, or update an existing one.
  *
@@ -168,6 +203,33 @@ Dict *dictSet(Dict *dict, char *key, void *value) {
 }
 
 /*
+ * Remove the object at the given key.
+ *
+ * @param dict: The dictionary to modify.
+ * @param key: The key of the object to remove.
+ *
+ * @return The dictionary without the key.
+ */
+Dict *dictRemove(Dict *dict, char *key) {
+  assert(dict != NULL);
+  assert(key != NULL);
+
+  List *list = dict->buckets[getBucket(dict, key)];
+  if (list == NULL)
+    return NULL;
+
+  int index;
+  DictEntry *entry;
+  if ((index = getDictEntry(list, key, &entry)) < 0)
+    return NULL;
+
+  listRemove(list, index);
+  dict->size--;
+  
+  return dict;
+}
+
+/*
  * Get the value for an existing key.
  *
  * @param dict: The dictionary to lookup.
@@ -182,17 +244,9 @@ void *dictGet(const Dict *dict, char *key) {
   if (list == NULL)
     return NULL;
 
-  void *ret = NULL;
   DictEntry *entry;
-  ListIter *iter = listIter(list, LIST_ITER_FORWARD);
+  if (getDictEntry(list, key, &entry) < 0)
+    return NULL;
 
-  while ((entry = listIterNext(iter)) != NULL) {
-    if (!strcmp(key, entry->key)) {
-      ret = entry->value;
-      break;
-    }
-  }
-
-  listIterFree(iter);
-  return ret;
+  return entry->value;
 }
