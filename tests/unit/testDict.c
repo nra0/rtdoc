@@ -30,7 +30,7 @@ static void testDictManyValues(void) {
   char *key = mmalloc(128);
   for (int i = 0; i < numValues; i++) {
     sprintf(key, "key%d", i);
-    dictSet(dict, key, boxCreate(i));
+    dict = dictSet(dict, key, boxCreate(i));
   }
   mfree(key);
   assertEqual(numValues, dictSize(dict));
@@ -38,7 +38,19 @@ static void testDictManyValues(void) {
 }
 
 static void testDictRemove(void) {
-
+  int numValues = 32;
+  char *key = mmalloc(128);
+  for (int i = 0; i < numValues; i++) {
+    sprintf(key, "key%d", i);
+    dict = dictSet(dict, key, boxCreate(i));
+  }
+  for (int i = 0; i < numValues; i++) {
+    sprintf(key, "key%d", i);
+    dictRemove(dict, key);
+    assertEqual(numValues - i - 1, dictSize(dict));
+    assertNull(dictGet(dict, key));
+  }
+  mfree(key);
 }
 
 

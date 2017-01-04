@@ -199,7 +199,7 @@ Dict *dictSet(Dict *dict, char *key, void *value) {
   listAppend(dict->buckets[bucket], entry);
   dict->size++;
 
-  return NULL;
+  return dict;
 }
 
 /*
@@ -225,7 +225,7 @@ Dict *dictRemove(Dict *dict, char *key) {
 
   listRemove(list, index);
   dict->size--;
-  
+
   return dict;
 }
 
