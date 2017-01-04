@@ -1,5 +1,6 @@
 #include "lib.h"
 #include "unit/testDict.h"
+#include "unit/testJson.h"
 #include "unit/testList.h"
 #include "unit/testMmalloc.h"
 
@@ -15,7 +16,8 @@ int main(int argc, char **argv) {
   TestSuite *suites[] = {
     mmallocTestSuite(),
     listTestSuite(),
-    dictTestSuite()
+    dictTestSuite(),
+    jsonTestSuite()
   };
 
   unsigned int numRun = 0, numFailed = 0;

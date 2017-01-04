@@ -311,13 +311,15 @@ static const char *parseObject(Json *json, const char *content, const char **err
     return inc(content);
 
   /* Object is not empty. */
+  key = mmalloc(JSON_OBJECT_KEY_LIMIT);
   do {
-    key = mmalloc(JSON_OBJECT_KEY_LIMIT);
     element = JsonCreate();
 
     /* Get the key. */
-    if ((content = skip(parseString(element, skip(inc(content)), err))) == NULL)
-      goto fail;
+    if ((content = skip(parseString(element, skip(inc(content)), err))) == NULL) {
+      JsonFree(element);
+      goto cleanup;
+    }
 
     strcpy(key, element->stringValue);
 
@@ -325,18 +327,16 @@ static const char *parseObject(Json *json, const char *content, const char **err
     if (*content != KEY_SEP) return fail(content, err);
 
     /* Get the value. */
-    if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL)
-      goto fail;
-
+    if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL) {
+      JsonFree(element);
+      goto cleanup;
+    }
     dictSet(json->objectValue, key, element);
-    mfree(key);
   } while (*content == VALUE_SEP);
 
   /* End of the object. */
   if (*content != OBJECT_END) return fail(content, err);
-  return content;
-
-  fail: mfree(key); JsonFree(element); return content;
+  cleanup: mfree(key); return content;
 }
 
 static const char *parseNext(Json *json, const char *content, const char **err) {
