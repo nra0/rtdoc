@@ -34,20 +34,20 @@ typedef struct Json {
 } Json;
 
 /* Memory management. */
-Json *JsonCreate(void);
-Json *JsonCreateNull(void);
-Json *JsonCreateBool(bool value);
-Json *JsonCreateTrue(void);
-Json *JsonCreateFalse(void);
-Json *JsonCreateInt(int value);
-Json *JsonCreateDouble(double value);
-Json *JsonCreateString(char *value);
-Json *JsonCreateArray(List *list);
-Json *JsonCreateObject(Dict *dict);
-void JsonFree(void *json);
+Json *jsonCreate(void);
+Json *jsonCreateNull(void);
+Json *jsonCreateBool(bool value);
+Json *jsonCreateTrue(void);
+Json *jsonCreateFalse(void);
+Json *jsonCreateInt(int value);
+Json *jsonCreateDouble(double value);
+Json *jsonCreateString(char *value);
+Json *jsonCreateArray(List *list);
+Json *jsonCreateObject(Dict *dict);
+void jsonFree(void *json);
 
 /* Conversions. */
-Json *JsonParse(const char *content, char **err);
-char *JsonStringify(const Json *json);
+Json *jsonParse(const char *content, char **err);
+char *jsonStringify(const Json *json);
 
 #endif

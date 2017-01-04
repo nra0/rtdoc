@@ -16,7 +16,7 @@
 /*
  * @return An allocated Json object.
  */
-Json *JsonCreate(void) {
+Json *jsonCreate(void) {
   Json *json = mmalloc(sizeof(Json));
   return json;
 }
@@ -24,8 +24,8 @@ Json *JsonCreate(void) {
 /*
  * @return A representation of the NULL Json object.
  */
-Json *JsonCreateNull(void) {
-  Json *json = JsonCreate();
+Json *jsonCreateNull(void) {
+  Json *json = jsonCreate();
   json->type = JSON_NULL;
   return json;
 }
@@ -34,8 +34,8 @@ Json *JsonCreateNull(void) {
  * @param value: The truthiness of the boolean.
  * @return A Json boolean value.
  */
-Json *JsonCreateBool(bool value) {
-  Json *json = JsonCreate();
+Json *jsonCreateBool(bool value) {
+  Json *json = jsonCreate();
   json->type = JSON_BOOL;
   json->boolValue = value;
   return json;
@@ -44,23 +44,23 @@ Json *JsonCreateBool(bool value) {
 /*
  * @return A Json boolean object with a true value.
  */
-Json *JsonCreateTrue(void) {
-  return JsonCreateBool(true);
+Json *jsonCreateTrue(void) {
+  return jsonCreateBool(true);
 }
 
 /*
  * @return A Json boolean object with a false value.
  */
-Json *JsonCreateFalse(void) {
-  return JsonCreateBool(false);
+Json *jsonCreateFalse(void) {
+  return jsonCreateBool(false);
 }
 
 /*
  * @param value: The integer value of the object.
  * @return A Json integer.
  */
-Json *JsonCreateInt(int value) {
-  Json *json = JsonCreate();
+Json *jsonCreateInt(int value) {
+  Json *json = jsonCreate();
   json->type = JSON_INT;
   json->intValue = value;
   return json;
@@ -70,8 +70,8 @@ Json *JsonCreateInt(int value) {
  * @param value: The double value of the object.
  * @return A Json double.
  */
-Json *JsonCreateDouble(double value) {
-  Json *json = JsonCreate();
+Json *jsonCreateDouble(double value) {
+  Json *json = jsonCreate();
   json->type = JSON_DOUBLE;
   json->doubleValue = value;
   return json;
@@ -81,8 +81,8 @@ Json *JsonCreateDouble(double value) {
  * @param value: The string value of the object.
  * @return A Json string.
  */
-Json *JsonCreateString(char *value) {
-  Json *json = JsonCreate();
+Json *jsonCreateString(char *value) {
+  Json *json = jsonCreate();
   json->type = JSON_STRING;
   json->stringValue = value;
   return json;
@@ -92,8 +92,8 @@ Json *JsonCreateString(char *value) {
  * @param list: The list representing the Json array.
  * @return A Json array.
  */
-Json *JsonCreateArray(List *list) {
-  Json *json = JsonCreate();
+Json *jsonCreateArray(List *list) {
+  Json *json = jsonCreate();
   json->type = JSON_ARRAY;
   json->arrayValue = list;
   return json;
@@ -103,8 +103,8 @@ Json *JsonCreateArray(List *list) {
  * @param dict: The dictionary representing the Json object.
  * @return A Json object.
  */
-Json *JsonCreateObject(Dict *dict) {
-  Json *json = JsonCreate();
+Json *jsonCreateObject(Dict *dict) {
+  Json *json = jsonCreate();
   json->type = JSON_OBJECT;
   json->objectValue = dict;
   return json;
@@ -115,7 +115,7 @@ Json *JsonCreateObject(Dict *dict) {
  *
  * @param json: The object to free.
  */
-void JsonFree(void *json) {
+void jsonFree(void *json) {
   assert(json != NULL);
 
   Json *js = (Json*) json;
@@ -276,7 +276,7 @@ static const char *parseArray(Json *json, const char *content, char **err) {
   if (*content != ARRAY_BEGIN) return fail(content, err);
 
   json->type = JSON_ARRAY;
-  json->arrayValue = listCreate(LIST_TYPE_ARRAY, &JsonFree);
+  json->arrayValue = listCreate(LIST_TYPE_ARRAY, &jsonFree);
 
   content = skip(inc(content));
   if (*content == ARRAY_END)
@@ -284,10 +284,10 @@ static const char *parseArray(Json *json, const char *content, char **err) {
 
   /* The list is not empty. */
   do {
-    Json *element = JsonCreate();
+    Json *element = jsonCreate();
     if ((content = skip(parseNext(element, content, err))) == NULL) {
       /* Parsing error. */
-      JsonFree(element);
+      jsonFree(element);
       return content;
     }
     listAppend(json->arrayValue, element);
@@ -305,7 +305,7 @@ static const char *parseObject(Json *json, const char *content, char **err) {
   Json *element;
 
   json->type = JSON_OBJECT;
-  json->objectValue = dictCreate(&JsonFree);
+  json->objectValue = dictCreate(&jsonFree);
 
   content = skip(inc(content));
   if (*content == OBJECT_END)
@@ -314,11 +314,11 @@ static const char *parseObject(Json *json, const char *content, char **err) {
   /* Object is not empty. */
   key = mmalloc(JSON_OBJECT_KEY_LIMIT);
   do {
-    element = JsonCreate();
+    element = jsonCreate();
 
     /* Get the key. */
     if ((content = skip(parseString(element, skip(inc(content)), err))) == NULL) {
-      JsonFree(element);
+      jsonFree(element);
       goto cleanup;
     }
 
@@ -329,7 +329,7 @@ static const char *parseObject(Json *json, const char *content, char **err) {
 
     /* Get the value. */
     if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL) {
-      JsonFree(element);
+      jsonFree(element);
       goto cleanup;
     }
     dictSet(json->objectValue, key, element);
@@ -378,13 +378,13 @@ static const char *parseNext(Json *json, const char *content, char **err) {
  * @param json: The string to parse.
  * @return The parsed Json object.
  */
-Json *JsonParse(const char *content, char **err) {
-  Json *json = JsonCreate();
+Json *jsonParse(const char *content, char **err) {
+  Json *json = jsonCreate();
   const char *end = parseNext(json, skip(content), err);
 
   if (!end) {
     /* Parsing error. */
-    JsonFree(json);
+    jsonFree(json);
     return false;
   }
 
@@ -398,6 +398,6 @@ Json *JsonParse(const char *content, char **err) {
  * @param json: The object to convert.
  * @return The object represented as a string.
  */
-char *JsonStringify(const Json *json) {
+char *jsonStringify(const Json *json) {
   return NULL;
 }
