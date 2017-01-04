@@ -5,23 +5,44 @@
 
 
 Json *json;
+char *err;
 
 
 static void setup(void) {
-  json = JsonCreate();
+  err = mmalloc(256);
 }
 
 static void teardown(void) {
-  JsonFree(json);
+  mfree(err);
+  assertEqual(0, memoryUsage());
 }
 
 
 static void testJsonParseLiteral(void) {
+  json = JsonParse("null", &err);
+  assertEqual(JSON_NULL, json->type);
+  JsonFree(json);
 
+  json = JsonParse("true", &err);
+  assertEqual(JSON_BOOL, json->type);
+  assertEqual(true, json->boolValue);
+  JsonFree(json);
+
+  json = JsonParse("false", &err);
+  assertEqual(JSON_BOOL, json->type);
+  assertEqual(false, json->boolValue);
+  JsonFree(json);
 }
 
 static void testJsonParseInt(void) {
-
+  char *inputs[] = {"0", "42", "-1", "-123", "980", "0023", "1E9", "-4e0"};
+  int values[] = {0, 42, -1, -123, 980, 23, 1000000000, -4};
+  for (int i = 0; i < arraySize(inputs); i++) {
+    json = JsonParse(inputs[i], &err);
+    assertEqual(JSON_INT, json->type);
+    assertEqual(values[i], json->intValue);
+    JsonFree(json);
+  }
 }
 
 static void testJsonParseDouble(void) {

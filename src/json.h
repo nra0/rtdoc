@@ -47,7 +47,7 @@ Json *JsonCreateObject(Dict *dict);
 void JsonFree(void *json);
 
 /* Conversions. */
-Json *JsonParse(const char *content, const char **err);
+Json *JsonParse(const char *content, char **err);
 char *JsonStringify(const Json *json);
 
 #endif

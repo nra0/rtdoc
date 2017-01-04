@@ -160,12 +160,13 @@ void JsonFree(void *json) {
 /* Utility macros. */
 #define inc(p)        (p + 1)
 #define ctoi(n)       (n - '0')
+#define min(a, b)      (a < b ? a : b)
 
 /*
  * Parsing failure.
  */
-static const char *fail(const char *content, const char **err) {
-  *err = content;
+static const char *fail(const char *content, char **err) {
+  strcpy(*err, content);
   return false;
 }
 
@@ -178,9 +179,9 @@ static const char *skip(const char *content) {
 }
 
 
-static const char *parseNext(Json *json, const char *content, const char **err);
+static const char *parseNext(Json *json, const char *content, char **err);
 
-static const char *parseNumber(Json *json, const char *content, const char **err) {
+static const char *parseNumber(Json *json, const char *content, char **err) {
   double n = 0;
   int sign = 1, expSign = 1, exp = 0, scale = 0;
 
@@ -231,7 +232,7 @@ static const char *parseNumber(Json *json, const char *content, const char **err
   return content;
 }
 
-static const char *parseString(Json *json, const char *content, const char **err) {
+static const char *parseString(Json *json, const char *content, char **err) {
   if (*content != STRING_SEP) return fail(content, err);
 
   int len = 0;
@@ -271,7 +272,7 @@ static const char *parseString(Json *json, const char *content, const char **err
   return inc(content);
 }
 
-static const char *parseArray(Json *json, const char *content, const char **err) {
+static const char *parseArray(Json *json, const char *content, char **err) {
   if (*content != ARRAY_BEGIN) return fail(content, err);
 
   json->type = JSON_ARRAY;
@@ -297,7 +298,7 @@ static const char *parseArray(Json *json, const char *content, const char **err)
   return inc(content);
 }
 
-static const char *parseObject(Json *json, const char *content, const char **err) {
+static const char *parseObject(Json *json, const char *content, char **err) {
   if (*content != OBJECT_BEGIN) return fail(content, err);
 
   char *key;
@@ -339,7 +340,7 @@ static const char *parseObject(Json *json, const char *content, const char **err
   cleanup: mfree(key); return content;
 }
 
-static const char *parseNext(Json *json, const char *content, const char **err) {
+static const char *parseNext(Json *json, const char *content, char **err) {
   if (!content) return false;
 
   /* Check what type of Json object we are dealing with. */
@@ -359,10 +360,12 @@ static const char *parseNext(Json *json, const char *content, const char **err) 
   if (!strncmp(content, TRUE_LITERAL, TRUE_LEN)) {
     json->type = JSON_BOOL;
     json->boolValue = true;
+    return content + TRUE_LEN;
   }
   if (!strncmp(content, FALSE_LITERAL, FALSE_LEN)) {
     json->type = JSON_BOOL;
     json->boolValue = false;
+    return content + FALSE_LEN;
   }
 
   /* Invalid input. */
@@ -375,7 +378,7 @@ static const char *parseNext(Json *json, const char *content, const char **err) 
  * @param json: The string to parse.
  * @return The parsed Json object.
  */
-Json *JsonParse(const char *content, const char **err) {
+Json *JsonParse(const char *content, char **err) {
   Json *json = JsonCreate();
   const char *end = parseNext(json, skip(content), err);
 

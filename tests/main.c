@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
     printf("SUITE: %s\n", testSuiteName(suites[i]));
     numRun += testSuiteNumTests(suites[i]);
     numFailed += testSuiteRun(suites[i]);
+    testSuiteFree(suites[i]);
   }
 
   printf("Ran %d tests. %d failed.\n", numRun, numFailed);
