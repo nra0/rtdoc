@@ -4,6 +4,9 @@
 #include "list.h"
 #include "dict.h"
 
+
+#define JSON_OBJECT_KEY_LIMIT 256
+
 /*
  * Converting to and from JSON strings and C objects.
  */
@@ -41,7 +44,7 @@ Json *JsonCreateDouble(double value);
 Json *JsonCreateString(char *value);
 Json *JsonCreateArray(List *list);
 Json *JsonCreateObject(Dict *dict);
-void JsonFree(Json *json);
+void JsonFree(void *json);
 
 /* Conversions. */
 Json *JsonParse(const char *content, const char **err);

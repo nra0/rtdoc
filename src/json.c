@@ -115,13 +115,14 @@ Json *JsonCreateObject(Dict *dict) {
  *
  * @param json: The object to free.
  */
-void JsonFree(Json *json) {
+void JsonFree(void *json) {
   assert(json != NULL);
 
-  switch (json->type) {
-    case JSON_STRING: mfree(json->stringValue); break;
-    case JSON_ARRAY: mfree(json->arrayValue); break;
-    case JSON_OBJECT: mfree(json->objectValue); break;
+  Json *js = (Json*) json;
+  switch (js->type) {
+    case JSON_STRING: mfree(js->stringValue); break;
+    case JSON_ARRAY: mfree(js->arrayValue); break;
+    case JSON_OBJECT: mfree(js->objectValue); break;
     default: break;
   }
 
@@ -272,11 +273,70 @@ static const char *parseString(Json *json, const char *content, const char **err
 
 static const char *parseArray(Json *json, const char *content, const char **err) {
   if (*content != ARRAY_BEGIN) return fail(content, err);
+
+  json->type = JSON_ARRAY;
+  json->arrayValue = listCreate(LIST_TYPE_ARRAY, &JsonFree);
+
+  content = skip(inc(content));
+  if (*content == ARRAY_END)
+    return inc(content);
+
+  /* The list is not empty. */
+  do {
+    Json *element = JsonCreate();
+    if ((content = skip(parseNext(element, content, err))) == NULL) {
+      /* Parsing error. */
+      JsonFree(element);
+      return content;
+    }
+    listAppend(json->arrayValue, element);
+  } while (*content == VALUE_SEP);
+
+  /* End of the list. */
+  if (*content != ARRAY_END) return fail(content, err);
   return inc(content);
 }
 
 static const char *parseObject(Json *json, const char *content, const char **err) {
-  return false;
+  if (*content != OBJECT_BEGIN) return fail(content, err);
+
+  char *key;
+  Json *element;
+
+  json->type = JSON_OBJECT;
+  json->objectValue = dictCreate(&JsonFree);
+
+  content = skip(inc(content));
+  if (*content == OBJECT_END)
+    return inc(content);
+
+  /* Object is not empty. */
+  do {
+    key = mmalloc(JSON_OBJECT_KEY_LIMIT);
+    element = JsonCreate();
+
+    /* Get the key. */
+    if ((content = skip(parseString(element, skip(inc(content)), err))) == NULL)
+      goto fail;
+
+    strcpy(key, element->stringValue);
+
+    /* Check for colon. */
+    if (*content != KEY_SEP) return fail(content, err);
+
+    /* Get the value. */
+    if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL)
+      goto fail;
+
+    dictSet(json->objectValue, key, element);
+    mfree(key);
+  } while (*content == VALUE_SEP);
+
+  /* End of the object. */
+  if (*content != OBJECT_END) return fail(content, err);
+  return content;
+
+  fail: mfree(key); JsonFree(element); return content;
 }
 
 static const char *parseNext(Json *json, const char *content, const char **err) {
