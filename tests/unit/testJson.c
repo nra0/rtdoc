@@ -45,7 +45,8 @@ static void testJsonParseInt(void) {
     "1E9",
     "-4e0"
   };
-  int values[] = {0,
+  int values[] = {
+    0,
     42,
     -1,
     -123,
@@ -103,7 +104,23 @@ static void testJsonParseString(void) {
 }
 
 static void testJsonParseArray(void) {
-
+  char *inputs[] = {
+    "[]"
+  };
+  int values[][10] = {
+    {}
+  };
+  for (int i = 0; i < arraySize(inputs); i++) {
+    json = jsonParse(inputs[i], &err);
+    assertEqual(JSON_ARRAY, json->type);
+    for (int j = 0; j < 10; j++) {
+      if (values[i][j] != 0)
+        assertEqual(values[i][j], ((Json*) listGet(json->arrayValue, j))->intValue);
+      else
+        break;
+    }
+    jsonFree(json);
+  }
 }
 
 static void testJsonParseObject(void) {

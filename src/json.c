@@ -120,13 +120,13 @@ void jsonFree(void *json) {
 
   Json *js = (Json*) json;
   switch (js->type) {
-    case JSON_STRING: mfree(js->stringValue); break;
-    case JSON_ARRAY: mfree(js->arrayValue); break;
-    case JSON_OBJECT: mfree(js->objectValue); break;
+    case JSON_STRING:   mfree(js->stringValue); break;
+    case JSON_ARRAY:    listFree(js->arrayValue); break;
+    case JSON_OBJECT:   dictFree(js->objectValue); break;
     default: break;
   }
 
-  mfree(json);
+  mfree(js);
 }
 
 
@@ -246,7 +246,7 @@ static const char *parseString(Json *json, const char *content, char **err) {
 
   if (*end != STRING_SEP) return fail(end, err);
 
-  value = mmalloc(len + 1);
+  value = mcalloc(len + 1);
   json->type = JSON_STRING;
   json->stringValue = value;
 
