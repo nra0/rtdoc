@@ -213,12 +213,12 @@ void assertNotNull(void *pointer) {
 }
 
 void assertStringEqual(char *string1, char *string2) {
-  if (!strcmp(string1, string2))
+  if (strcmp(string1, string2))
     assertError += sprintf(assertError, "%s does not equal %s\n", string1, string2);
 }
 
 void assertStringNotEqual(char *string1, char *string2) {
-  if (strcmp(string1, string2))
+  if (!strcmp(string1, string2))
     assertError += sprintf(assertError, "%s equals %s\n", string1, string2);
 }
 
