@@ -190,7 +190,8 @@ static const char *parseNumber(Json *json, const char *content, char **err) {
     sign = -1, content++;
 
   /* Make sure we have a number. */
-  if (!isdigit(*content)) return fail(content, err);
+  if (!isdigit(*content))
+    return fail(content, err);
 
   /* Skip leading zeros. */
   while (*content == ZERO)
@@ -233,7 +234,8 @@ static const char *parseNumber(Json *json, const char *content, char **err) {
 }
 
 static const char *parseString(Json *json, const char *content, char **err) {
-  if (*content != STRING_SEP) return fail(content, err);
+  if (*content != STRING_SEP)
+    return fail(content, err);
 
   int len = 0;
   char *value;
@@ -244,7 +246,8 @@ static const char *parseString(Json *json, const char *content, char **err) {
     if (*end == ESCAPE)
       end++;
 
-  if (*end != STRING_SEP) return fail(end, err);
+  if (*end != STRING_SEP)
+    return fail(end, err);
 
   value = mcalloc(len + 1);
   json->type = JSON_STRING;
@@ -273,7 +276,8 @@ static const char *parseString(Json *json, const char *content, char **err) {
 }
 
 static const char *parseArray(Json *json, const char *content, char **err) {
-  if (*content != ARRAY_BEGIN) return fail(content, err);
+  if (*content != ARRAY_BEGIN)
+    return fail(content, err);
 
   json->type = JSON_ARRAY;
   json->arrayValue = listCreate(LIST_TYPE_ARRAY, &jsonFree);
@@ -291,15 +295,21 @@ static const char *parseArray(Json *json, const char *content, char **err) {
       return content;
     }
     listAppend(json->arrayValue, element);
-  } while (*content == VALUE_SEP);
+
+    if (*content != VALUE_SEP)
+      break;
+    content = skip(inc(content));
+  } while (*content != ARRAY_END);
 
   /* End of the list. */
-  if (*content != ARRAY_END) return fail(content, err);
+  if (*content != ARRAY_END)
+    return fail(content, err);
   return inc(content);
 }
 
 static const char *parseObject(Json *json, const char *content, char **err) {
-  if (*content != OBJECT_BEGIN) return fail(content, err);
+  if (*content != OBJECT_BEGIN)
+    return fail(content, err);
 
   char *key;
   Json *element;
@@ -325,7 +335,8 @@ static const char *parseObject(Json *json, const char *content, char **err) {
     strcpy(key, element->stringValue);
 
     /* Check for colon. */
-    if (*content != KEY_SEP) return fail(content, err);
+    if (*content != KEY_SEP)
+      return fail(content, err);
 
     /* Get the value. */
     if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL) {
@@ -336,12 +347,16 @@ static const char *parseObject(Json *json, const char *content, char **err) {
   } while (*content == VALUE_SEP);
 
   /* End of the object. */
-  if (*content != OBJECT_END) return fail(content, err);
-  cleanup: mfree(key); return content;
+  if (*content != OBJECT_END)
+    return fail(content, err);
+  cleanup:
+    mfree(key);
+    return content;
 }
 
 static const char *parseNext(Json *json, const char *content, char **err) {
-  if (!content) return false;
+  if (!content)
+    return false;
 
   /* Check what type of Json object we are dealing with. */
   switch (*content) {

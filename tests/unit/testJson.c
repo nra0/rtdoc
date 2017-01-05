@@ -105,10 +105,16 @@ static void testJsonParseString(void) {
 
 static void testJsonParseArray(void) {
   char *inputs[] = {
-    "[]"
+    "[]",
+    "[42]",
+    "[1, 2, 3]",
+    "[-3, 23, 48, 2, -4, 1, 9, 8, 4, 4]"
   };
   int values[][10] = {
-    {}
+    {},
+    {42},
+    {1, 2, 3},
+    {-3, 23, 48, 2, -4, 1, 9, 8, 4, 4}
   };
   for (int i = 0; i < arraySize(inputs); i++) {
     json = jsonParse(inputs[i], &err);
