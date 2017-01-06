@@ -5,14 +5,40 @@
 #include "unit/testMmalloc.h"
 
 #include <stdio.h>
+#include <string.h>
 
 
-TestCase *findTestCase(TestSuite **suites, char *name, unsigned int numSuites) {
+/*
+ * Find a test case (or suite) with the given name and run it.
+ */
+static void runTestCase(TestSuite **suites, char *name, unsigned int numSuites) {
   TestCase *tc;
-  for (int i = 0; i < numSuites; i++)
-    if ((tc = testSuiteGet(suites[i], name)) != NULL)
-      return tc;
-  return NULL;
+  for (int i = 0; i < numSuites; i++) {
+    if (!strcmp(name, testSuiteName(suites[i]))) {
+      testSuiteRun(suites[i]);
+      return;
+    }
+    if ((tc = testSuiteGet(suites[i], name)) != NULL) {
+      testCaseRun(tc);
+      return;
+    }
+  }
+  printf("Could not load test case %s\n", name);
+}
+
+/*
+ * Run all test suites.
+ */
+static void runTestSuites(TestSuite **suites, unsigned int numSuites) {
+  int numRun = 0, numFailed = 0;
+
+  for (int i = 0; i < numSuites; i++) {
+    printf("SUITE: %s\n", testSuiteName(suites[i]));
+    numRun += testSuiteNumTests(suites[i]);
+    numFailed += testSuiteRun(suites[i]);
+  }
+
+  printf("Ran %d tests. %d failed.\n", numRun, numFailed);
 }
 
 /*
@@ -26,28 +52,13 @@ int main(int argc, char **argv) {
     jsonTestSuite()
   };
 
-  if (argc > 1) {
-    /* Run a specific test. */
-    TestCase *tc = findTestCase(suites, argv[1], arraySize(suites));
-    if (tc == NULL) {
-      printf("Could not load test case %s\n", argv[1]);
-      return 1;
-    }
-    testCaseRun(tc);
-    return 0;
-  }
+  if (argc > 1)
+    runTestCase(suites, argv[1], arraySize(suites));
+  else
+    runTestSuites(suites, arraySize(suites));
 
-  /* Run all the tests. */
-  int numRun = 0, numFailed = 0;
-
-  for (int i = 0; i < arraySize(suites); i++) {
-    printf("SUITE: %s\n", testSuiteName(suites[i]));
-    numRun += testSuiteNumTests(suites[i]);
-    numFailed += testSuiteRun(suites[i]);
+  for (int i = 0; i < arraySize(suites); i++)
     testSuiteFree(suites[i]);
-  }
-
-  printf("Ran %d tests. %d failed.\n", numRun, numFailed);
 
   return 0;
 }
