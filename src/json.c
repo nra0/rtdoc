@@ -131,7 +131,7 @@ void jsonFree(void *json) {
 
 
 /**********************************************************************
- *             Parsing to and from string representation.
+ *               Parse Json string to binary struct.
  **********************************************************************/
 
 /* Json literal values. */
@@ -414,6 +414,49 @@ Json *jsonParse(const char *content, char **err) {
   return json;
 }
 
+
+/**********************************************************************
+ *                    Stringify a Json object
+ **********************************************************************/
+
+#define JSON_STRING_INITIAL_SIZE   256
+
+int stringifyNull(const Json *json, char **content) {
+  return 0;
+}
+
+int stringifyNumber(const Json *json, char **content) {
+  return 0;
+}
+
+int stringifyBool(const Json *json, char **content) {
+  return 0;
+}
+
+int stringifyString(const Json *json, char **content) {
+  return 0;
+}
+
+int stringifyArray(const Json *json, char **content) {
+  return 0;
+}
+
+int stringifyObject(const Json *json, char **content) {
+  return 0;
+}
+
+int stringifyNext(const Json *json, char **content) {
+  switch (json->type) {
+    case JSON_NULL:   return stringifyNull(json, content);
+    case JSON_BOOL:   return stringifyBool(json, content);
+    case JSON_INT:
+    case JSON_DOUBLE: return stringifyNumber(json, content);
+    case JSON_STRING: return stringifyString(json, content);
+    case JSON_ARRAY:  return stringifyArray(json, content);
+    case JSON_OBJECT: return stringifyObject(json, content);
+  }
+}
+
 /*
  * Convert an object into a string.
  *
@@ -421,5 +464,9 @@ Json *jsonParse(const char *content, char **err) {
  * @return The object represented as a string.
  */
 char *jsonStringify(const Json *json) {
-  return NULL;
+  assert(json != NULL);
+
+  char *content = mcalloc(JSON_STRING_INITIAL_SIZE);
+  stringifyNext(json, &content);
+  return content;
 }

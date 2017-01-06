@@ -33,7 +33,6 @@ static bool canAllocate(size_t size) {
 }
 
 
-
 /*
  * Out of memory error; Called when the memory limit is exceeded.
  *

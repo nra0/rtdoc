@@ -7,9 +7,12 @@
 #include <unistd.h>
 
 
+#define SERVER_DEFAULT_PORT 7890
+
+
 int main(int argc, char **argv) {
   bool client, quiet;
-  int port;
+  int port = SERVER_DEFAULT_PORT;
   char opt;
 
   while ((opt = getopt(argc, argv, "cp:s")) != -1) {
@@ -21,8 +24,10 @@ int main(int argc, char **argv) {
   }
 
   if (client) {
-    printf("Client main method...\n");
+    /* Run the client application. */
+    clientStart(port);
   } else {
+    /* Run the main server. */
     RTServer *server = serverCreate();
     serverSetPort(server, port);
     serverSetVerbosity(server, !quiet);

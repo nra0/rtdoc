@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 
-#define DEFAULT_PORT 7890
 #define BUFFER_SIZE  1024
 #define BACKLOG_SIZE 128
 
@@ -42,7 +41,6 @@ RTServer *serverCreate(void) {
   SockAddr *serverAddr = mcalloc(sizeof(SockAddr));
   char buffer[BUFFER_SIZE];
 
-  server->port = DEFAULT_PORT;
   server->fd = socket(AF_INET, SOCK_STREAM, 0);
   server->addr = serverAddr;
   server->verbose = false;
@@ -61,7 +59,7 @@ RTServer *serverCreate(void) {
  */
 void serverSetPort(RTServer *server, unsigned int port) {
   assert(server != NULL);
-  server->port = port != 0 ? port : DEFAULT_PORT;
+  server->port = port;
 }
 
 /*
