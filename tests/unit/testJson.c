@@ -158,7 +158,24 @@ static void testJsonParseObject(void) {
 }
 
 static void testJsonParseComplex(void) {
+  json = jsonParse("{\"foo\": [1, true, \"false\"], \"bar\": {\"baz\": 33.4}}", &err);
+  assertEqual(JSON_OBJECT, json->type);
+  assertEqual(2, dictSize(json->objectValue));
 
+  Json *foo = dictGet(json->objectValue, "foo");
+  Json *bar = dictGet(json->objectValue, "bar");
+
+  assertEqual(JSON_ARRAY, foo->type);
+  assertEqual(3, listLength(foo->arrayValue));
+  assertEqual(1, ((Json*) listGet(foo->arrayValue, 0))->intValue);
+  assertTrue(((Json*) listGet(foo->arrayValue, 1))->boolValue);
+  assertStringEqual("false", ((Json*) listGet(foo->arrayValue, 2))->stringValue);
+
+  assertEqual(JSON_OBJECT, bar->type);
+  assertEqual(1, dictSize(bar->objectValue));
+  assertDoubleEqual(33.4, ((Json*) dictGet(bar->objectValue, "baz"))->doubleValue);
+
+  jsonFree(json);
 }
 
 

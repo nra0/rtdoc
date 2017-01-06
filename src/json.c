@@ -339,14 +339,18 @@ static const char *parseObject(Json *json, const char *content, char **err) {
     key = element->stringValue;
 
     /* Check for colon. */
-    if (*content != KEY_SEP)
+    if (*content != KEY_SEP) {
+      mfree(key);
       return fail(content, err);
+    }
 
     /* Get the value. */
     if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL) {
       jsonFree(element);
+      mfree(key);
       return content;
     }
+
     dictSet(json->objectValue, key, element);
     mfree(key);
   } while (*content == VALUE_SEP);
