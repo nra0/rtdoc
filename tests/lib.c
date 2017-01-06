@@ -44,10 +44,11 @@ int boxValue(void *box) {
  *                            Test suite functions.
  *******************************************************************************/
 
-typedef struct TestCase {
-  char *name;                 /* The name of the test. */
-  void (*test)(void);         /* The pointer to the test function. */
-} TestCase;
+struct TestCase {
+  char *name;                             /* The name of the test. */
+  TestSuite *suite;                       /* The suite the test belongs to. */
+  void (*test)(void);                     /* The pointer to the test function. */
+};
 
 struct TestSuite {
   char *name;                             /* The name of the test suite. */
@@ -122,6 +123,7 @@ void testSuiteAdd(TestSuite *suite, char *name, void (*test)(void)) {
 
   TestCase *tc = malloc(sizeof(TestCase));
   tc->name = name;
+  tc->suite = suite;
   tc->test= test;
   suite->tests[suite->numTests] = tc;
   suite->numTests++;
@@ -136,33 +138,60 @@ static void resetAssertError(void) {
 }
 
 /*
+ * Get a test case with the given name.
+ *
+ * @param suite: The suite to search.
+ * @param name: The name of the test case.
+ * @return The matching test case.
+ */
+TestCase *testSuiteGet(TestSuite *suite, char *name) {
+  for (int i = 0; i < suite->numTests; i++) {
+    TestCase *tc = suite->tests[i];
+    if (!strcmp(name, tc->name))
+      return tc;
+  }
+  return NULL;
+}
+
+/*
+ * Run a test case.
+ *
+ * @param tc: The test case to run.
+ * @return 0 if the test passed, 1 if it failed.
+ */
+int testCaseRun(TestCase *tc) {
+  resetAssertError();
+  printf("%-40s", tc->name);
+
+  /* Setup, test, and teardown. */
+  if (tc->suite->setup != NULL)
+    tc->suite->setup();
+  tc->test();
+  if (tc->suite->teardown != NULL)
+    tc->suite->teardown();
+
+  if (strlen(assertErrorMessage)) {
+    /* The test failed. */
+    printf("%s✗\n%s%s%s", COLOR_RED, COLOR_MAGENTA, assertErrorMessage, COLOR_NORMAL);
+    return 1;
+  } else {
+    /* The test passed. */
+    printf("%s✓%s\n", COLOR_GREEN, COLOR_NORMAL);
+    return 0;
+  }
+}
+
+/*
  * Run a test suite.
  *
  * @param suite: The suite to run.
  * @return The number of failures.
  */
 int testSuiteRun(TestSuite *suite) {
-  TestCase *tc;
   int numFailed = 0;
 
-  for (int i =  0; i < suite->numTests; i++) {
-    resetAssertError();
-    tc = suite->tests[i];
-    printf("%-40s", tc->name);
-
-    if (suite->setup != NULL)
-      suite->setup();
-    tc->test();
-    if (suite->teardown != NULL)
-      suite->teardown();
-
-    if (strlen(assertErrorMessage)) {
-      printf("%s✗\n%s%s%s", COLOR_RED, COLOR_MAGENTA, assertErrorMessage, COLOR_NORMAL);
-      numFailed++;
-    } else {
-      printf("%s✓%s\n", COLOR_GREEN, COLOR_NORMAL);
-    }
-  }
+  for (int i = 0; i < suite->numTests; i++)
+    numFailed += testCaseRun(suite->tests[i]);
 
   return numFailed;
 }

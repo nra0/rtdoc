@@ -4,6 +4,9 @@
 #include "../../src/mmalloc.h"
 
 
+#define TEST_OBJECT_SIZE 10
+
+
 Json *json;
 char *err;
 
@@ -110,7 +113,7 @@ static void testJsonParseArray(void) {
     "[1, 2, 3]",
     "[-3, 23, 48, 2, -4, 1, 9, 8, 4, 4]"
   };
-  int values[][10] = {
+  int values[][TEST_OBJECT_SIZE] = {
     {},
     {42},
     {1, 2, 3},
@@ -119,7 +122,7 @@ static void testJsonParseArray(void) {
   for (int i = 0; i < arraySize(inputs); i++) {
     json = jsonParse(inputs[i], &err);
     assertEqual(JSON_ARRAY, json->type);
-    for (int j = 0; j < 10; j++) {
+    for (int j = 0; j < TEST_OBJECT_SIZE; j++) {
       if (values[i][j] != 0)
         assertEqual(values[i][j], ((Json*) listGet(json->arrayValue, j))->intValue);
       else
@@ -130,7 +133,27 @@ static void testJsonParseArray(void) {
 }
 
 static void testJsonParseObject(void) {
-
+  char *inputs[] = {
+    // "{}",
+    "{\"key\": \"value\"}"
+  };
+  char *values[][TEST_OBJECT_SIZE][2] = {
+    // {{}},
+    {{"key", "value"}}
+  };
+  for (int i = 0; i < arraySize(inputs); i++) {
+    json = jsonParse(inputs[i], &err);
+    assertEqual(JSON_OBJECT, json->type);
+    for (int j = 0; j < TEST_OBJECT_SIZE; j++) {
+      char *key = values[i][j][0], *value = values[i][j][1];
+      if (values[i][j][0] != NULL)
+        assertEqual(1,1);
+        //assertStringEqual(value, ((Json*) dictGet(json->objectValue, key))->stringValue);
+      else
+        break;
+    }
+    jsonFree(json);
+  }
 }
 
 static void testJsonParseComplex(void) {

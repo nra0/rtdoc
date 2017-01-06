@@ -53,11 +53,20 @@ static void testDictRemove(void) {
   mfree(key);
 }
 
+static void testDictMutationKey(void) {
+  char key[] = "key";
+  dictSet(dict, key, boxCreate(1));
+  key[1] = 'a';
+  assertStringEqual("kay", key);
+  assertNotNull(dictGet(dict, "key"));
+}
+
 
 TestSuite *dictTestSuite() {
   TestSuite *suite = testSuiteCreate("hash map", &setup, &teardown);
   testSuiteAdd(suite, "set and get single value", &testDictSingleValue);
   testSuiteAdd(suite, "set many values", &testDictManyValues);
   testSuiteAdd(suite, "remove key", &testDictRemove);
+  testSuiteAdd(suite, "key mutation", &testDictMutationKey);
   return suite;
 }

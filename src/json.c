@@ -327,7 +327,7 @@ static const char *parseObject(Json *json, const char *content, char **err) {
     element = jsonCreate();
 
     /* Get the key. */
-    if ((content = skip(parseString(element, skip(inc(content)), err))) == NULL) {
+    if ((content = skip(parseString(element, content, err))) == NULL) {
       jsonFree(element);
       goto cleanup;
     }
@@ -335,8 +335,10 @@ static const char *parseObject(Json *json, const char *content, char **err) {
     strcpy(key, element->stringValue);
 
     /* Check for colon. */
-    if (*content != KEY_SEP)
-      return fail(content, err);
+    if (*content != KEY_SEP) {
+      content = fail(content, err);
+      goto cleanup;
+    }
 
     /* Get the value. */
     if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL) {
@@ -348,7 +350,7 @@ static const char *parseObject(Json *json, const char *content, char **err) {
 
   /* End of the object. */
   if (*content != OBJECT_END)
-    return fail(content, err);
+    content = fail(content, err);
   cleanup:
     mfree(key);
     return content;

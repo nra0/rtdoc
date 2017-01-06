@@ -24,6 +24,7 @@ int boxValue(void *box);
  * Test utility functions.
  */
 
+typedef struct TestCase TestCase;
 typedef struct TestSuite TestSuite;
 
 /* Test suite functions. */
@@ -32,6 +33,8 @@ void testSuiteFree(TestSuite *suite);
 char *testSuiteName(TestSuite *suite);
 unsigned int testSuiteNumTests(TestSuite *suite);
 void testSuiteAdd(TestSuite *suite, char *name, void (*test)(void));
+TestCase *testSuiteGet(TestSuite *suite, char *name);
+int testCaseRun(TestCase *tc);
 int testSuiteRun(TestSuite *suite);
 
 /* Assert functions */

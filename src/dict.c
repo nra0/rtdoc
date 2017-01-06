@@ -7,7 +7,7 @@
 #include <string.h>
 
 
-#define DICT_NUM_BUCKETS_INITIAL 256
+#define DICT_NUM_BUCKETS_INITIAL 8
 #define DICT_REHASH_CAPACITY     0.75
 
 
