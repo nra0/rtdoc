@@ -320,40 +320,41 @@ static const char *parseObject(Json *json, const char *content, char **err) {
   content = skip(inc(content));
   if (*content == OBJECT_END)
     return inc(content);
+  if (*content == VALUE_SEP)
+    return fail(content, err);
 
   /* Object is not empty. */
-  key = mmalloc(JSON_OBJECT_KEY_LIMIT);
   do {
+    if (*content == VALUE_SEP)
+      content = skip(inc(content));
+
     element = jsonCreate();
 
     /* Get the key. */
     if ((content = skip(parseString(element, content, err))) == NULL) {
       jsonFree(element);
-      goto cleanup;
+      return content;
     }
 
-    strcpy(key, element->stringValue);
+    key = element->stringValue;
 
     /* Check for colon. */
-    if (*content != KEY_SEP) {
-      content = fail(content, err);
-      goto cleanup;
-    }
+    if (*content != KEY_SEP)
+      return fail(content, err);
 
     /* Get the value. */
     if ((content = skip(parseNext(element, skip(inc(content)), err))) == NULL) {
       jsonFree(element);
-      goto cleanup;
+      return content;
     }
     dictSet(json->objectValue, key, element);
+    mfree(key);
   } while (*content == VALUE_SEP);
 
   /* End of the object. */
   if (*content != OBJECT_END)
-    content = fail(content, err);
-  cleanup:
-    mfree(key);
-    return content;
+    return fail(content, err);
+  return content;
 }
 
 static const char *parseNext(Json *json, const char *content, char **err) {

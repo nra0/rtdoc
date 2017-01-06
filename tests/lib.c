@@ -17,6 +17,10 @@
 #define COLOR_CYAN      "\x1B[36m"
 #define COLOR_WHITE     "\x1B[37m"
 
+#define COLOR_SUCCESS   COLOR_GREEN
+#define COLOR_FAILURE   COLOR_RED
+#define COLOR_ERROR     COLOR_MAGENTA
+
 char assertErrorMessage[8092];
 char *assertError;
 
@@ -172,11 +176,11 @@ int testCaseRun(TestCase *tc) {
 
   if (strlen(assertErrorMessage)) {
     /* The test failed. */
-    printf("%s✗\n%s%s%s", COLOR_RED, COLOR_MAGENTA, assertErrorMessage, COLOR_NORMAL);
+    printf("%s✗\n%s%s%s", COLOR_FAILURE, COLOR_ERROR, assertErrorMessage, COLOR_NORMAL);
     return 1;
   } else {
     /* The test passed. */
-    printf("%s✓%s\n", COLOR_GREEN, COLOR_NORMAL);
+    printf("%s✓%s\n", COLOR_SUCCESS, COLOR_NORMAL);
     return 0;
   }
 }

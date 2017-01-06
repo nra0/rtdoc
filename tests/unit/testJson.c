@@ -134,12 +134,14 @@ static void testJsonParseArray(void) {
 
 static void testJsonParseObject(void) {
   char *inputs[] = {
-    // "{}",
-    "{\"key\": \"value\"}"
+    "{}",
+    "{\"key\": \"value\"}",
+    "{\"key1\": \"value1\", \"key2\": \"value2\", \"key3\": \"value1\"}"
   };
   char *values[][TEST_OBJECT_SIZE][2] = {
-    // {{}},
-    {{"key", "value"}}
+    {{}},
+    {{"key", "value"}},
+    {{"key1", "value1"}, {"key2", "value2"}, {"key3", "value1"}}
   };
   for (int i = 0; i < arraySize(inputs); i++) {
     json = jsonParse(inputs[i], &err);
@@ -147,8 +149,7 @@ static void testJsonParseObject(void) {
     for (int j = 0; j < TEST_OBJECT_SIZE; j++) {
       char *key = values[i][j][0], *value = values[i][j][1];
       if (values[i][j][0] != NULL)
-        assertEqual(1,1);
-        //assertStringEqual(value, ((Json*) dictGet(json->objectValue, key))->stringValue);
+        assertStringEqual(value, ((Json*) dictGet(json->objectValue, key))->stringValue);
       else
         break;
     }
