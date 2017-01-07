@@ -63,6 +63,26 @@ static void testRealloc(void) {
   mfree(ptr);
 }
 
+static void testReallocSmaller(void) {
+  size_t s1 = 4096, s2 = 1024;
+  void *ptr = mmalloc(s1);
+  ptr = mrealloc(ptr, s2);
+  assertEqual(s2, msize(ptr));
+  assertEqual(s2, memoryUsage());
+  mfree(ptr);
+}
+
+static void testReallocMany(void) {
+  void *ptr = mmalloc(1);
+  size_t sizes[] = {1, 2, 4, 8, 36, 128, 512, 4096, 32864};
+  for (int i = 0; i < arraySize(sizes); i++) {
+    ptr = mrealloc(ptr, sizes[i]);
+    assertEqual(sizes[i], msize(ptr));
+    assertEqual(sizes[i], memoryUsage());
+  }
+  mfree(ptr);
+}
+
 static void testReallocPreserveData(void) {
   size_t s1 = 6, s2 = 32;
   char *ptr = mmalloc(s1);
@@ -114,6 +134,8 @@ TestSuite *mmallocTestSuite() {
   testSuiteAdd(suite, "free null pointer", &testFreeNull);
   testSuiteAdd(suite, "calloc", &testCalloc);
   testSuiteAdd(suite, "realloc", &testRealloc);
+  testSuiteAdd(suite, "realloc smaller", &testReallocSmaller);
+  testSuiteAdd(suite, "realloc many", &testReallocMany);
   testSuiteAdd(suite, "realloc preserve data", &testReallocPreserveData);
   testSuiteAdd(suite, "memory usage tracking", &testMemoryUsage);
   testSuiteAdd(suite, "respect memory limit", &testMemoryLimit);

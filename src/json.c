@@ -421,31 +421,28 @@ Json *jsonParse(const char *content, char **err) {
  *                    Stringify a Json object
  **********************************************************************/
 
-#define JSON_STRING_INITIAL_SIZE   256
+#define JSON_STRING_INITIAL_SIZE 4
 
 
 static int stringifyNext(const Json *json, char *content, unsigned int offset);
 
-static char *reallocContent(char *content) {
-  printf("reallocating");
-  return mrealloc(content, msize(content) * 2 + 1);
+static void checkSpace(int offset, size_t size, char **content) {
+  while (offset + size > msize(*content))
+    *content = mrealloc(*content, msize(content) * 2 + 1);
 }
 
 static int stringifyNull(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_NULL);
 
-  if (offset + NULL_LEN > msize(content))
-    content = reallocContent(content);
-
+  checkSpace(offset, NULL_LEN, &content);
   strcpy(content + offset, NULL_LITERAL);
+
   return NULL_LEN;
 }
 
 static int stringifyBool(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_BOOL);
-
-  if (offset + FALSE_LEN > msize(content))
-    content = reallocContent(content);
+  checkSpace(offset, FALSE_LEN, &content);
 
   if (json->boolValue) {
     strcpy(content + offset, TRUE_LITERAL);
@@ -460,10 +457,9 @@ static int stringifyInt(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_INT);
 
   int length = snprintf(NULL, 0, "%d", json->intValue);
-  if (offset + length > msize(content))
-    content = reallocContent(content);
-
+  checkSpace(offset, length, &content);
   sprintf(content + offset, "%d", json->intValue);
+
   return length;
 }
 
@@ -471,9 +467,7 @@ static int stringifyDouble(const Json *json, char *content, unsigned int offset)
   assert(json->type == JSON_DOUBLE);
 
   int length = snprintf(NULL, 0, "%f", json->doubleValue);
-  if (offset + length > msize(content))
-    content = reallocContent(content);
-
+  checkSpace(offset, length, &content);
   sprintf(content + offset, "%f", json->doubleValue);
 
   /* Trim of trailing zeros. */
@@ -487,12 +481,10 @@ static int stringifyDouble(const Json *json, char *content, unsigned int offset)
 static int stringifyString(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_STRING);
 
-  int length = strlen(json->stringValue) + 2;
+  int length = strlen(json->stringValue) + 3;
+  checkSpace(offset, length, &content);
+  sprintf(content + offset, "%c%s%c", STRING_SEP, json->stringValue, STRING_SEP);
 
-  if (offset + length > msize(content))
-    content = reallocContent(content);
-
-  sprintf(content + offset, "\"%s\"", json->stringValue);
   return length;
 }
 
@@ -500,11 +492,9 @@ static int stringifyArray(const Json *json, char *content, unsigned int offset) 
   assert(json->type == JSON_ARRAY);
 
   /* Room for the enclosing brackets and commas. */
-  if (offset + listLength(json->arrayValue) + 2 > msize(content))
-    content = reallocContent(content);
-
+  checkSpace(offset, listLength(json->arrayValue) + 2, &content);
   int start = offset;
-  content[offset++] = '[';
+  content[offset++] = OBJECT_BEGIN;
 
   ListIter *iter = listIter(json->arrayValue, LIST_ITER_FORWARD);
   Json *entry;
@@ -513,13 +503,13 @@ static int stringifyArray(const Json *json, char *content, unsigned int offset) 
   while ((entry = listIterNext(iter)) != NULL) {
     /* Comma separate the inner values. */
     if (!first)
-      content[offset++] = ',';
+      content[offset++] = VALUE_SEP;
     first = false;
     offset += stringifyNext(entry, content, offset);
   }
 
   listIterFree(iter);
-  content[offset++] = ']';
+  content[offset++] = OBJECT_END;
 
   return offset - start;
 }
@@ -528,11 +518,10 @@ static int stringifyObject(const Json *json, char *content, unsigned int offset)
   assert(json->type == JSON_OBJECT);
 
   /* Room for enclosing braces, commas, and colons. */
-  if (offset + dictSize(json->objectValue) * 2 + 2 > msize(content))
-    content = reallocContent(content);
+  checkSpace(offset, dictSize(json->objectValue) * 2 + 2, &content);
 
   int start = offset;
-  content[offset++] = '{';
+  content[offset++] = OBJECT_BEGIN;
 
   DictIter *iter = dictIter(json->objectValue);
   char *key;
@@ -541,16 +530,14 @@ static int stringifyObject(const Json *json, char *content, unsigned int offset)
 
   while ((key = dictIterNext(iter)) != NULL) {
     if (!first)
-      content[offset++] = ',';
+      content[offset++] = VALUE_SEP;
     first = false;
 
-    if (offset + strlen(key) > msize(content))
-      reallocContent(content);
-
     /* Write the key. */
-    sprintf(content + offset, "\"%s\"", key);
+    checkSpace(offset, strlen(key), &content);
+    sprintf(content + offset, "%c%s%c", STRING_SEP, key, STRING_SEP);
     offset += strlen(key) + 2;
-    content[offset++] = ':';
+    content[offset++] = KEY_SEP;
 
     /* Write the value. */
     value = dictGet(json->objectValue, key);
@@ -558,7 +545,7 @@ static int stringifyObject(const Json *json, char *content, unsigned int offset)
   }
 
   dictIterFree(iter);
-  content[offset++] = '}';
+  content[offset++] = OBJECT_END;
 
   return offset - start;
 }
