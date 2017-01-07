@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 
@@ -429,7 +430,7 @@ static char *reallocContent(char *content) {
 static int stringifyNull(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_NULL);
 
-  if (offset + NULL_LEN < msize(content))
+  if (offset + NULL_LEN > msize(content))
     content = reallocContent(content);
 
   strcpy(content + offset, NULL_LITERAL);
@@ -439,7 +440,7 @@ static int stringifyNull(const Json *json, char *content, unsigned int offset) {
 static int stringifyBool(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_BOOL);
 
-  if (offset + FALSE_LEN < msize(content))
+  if (offset + FALSE_LEN > msize(content))
     content = reallocContent(content);
 
   if (json->boolValue) {
@@ -451,8 +452,27 @@ static int stringifyBool(const Json *json, char *content, unsigned int offset) {
   }
 }
 
-static int stringifyNumber(const Json *json, char *content, unsigned int offset) {
-  return 0;
+static int stringifyInt(const Json *json, char *content, unsigned int offset) {
+  assert(json->type == JSON_INT);
+
+  int length = snprintf(NULL, 0, "%d", json->intValue);
+  if (offset + length > msize(content))
+    content = reallocContent(content);
+
+  sprintf(content + offset, "%d", json->intValue);
+  return length;
+}
+
+static int stringifyDouble(const Json *json, char *content, unsigned int offset) {
+  assert(json->type == JSON_DOUBLE);
+
+  int length = snprintf(NULL, 0, "%g", json->doubleValue);
+
+  if (offset + length > msize(content))
+    content = reallocContent(content);
+
+  sprintf(content + offset, "%.8g", json->doubleValue);
+  return length;
 }
 
 static int stringifyString(const Json *json, char *content, unsigned int offset) {
@@ -471,8 +491,8 @@ int stringifyNext(const Json *json, char *content, unsigned int offset) {
   switch (json->type) {
     case JSON_NULL:   return stringifyNull(json, content, offset);
     case JSON_BOOL:   return stringifyBool(json, content, offset);
-    case JSON_INT:
-    case JSON_DOUBLE: return stringifyNumber(json, content, offset);
+    case JSON_INT:    return stringifyInt(json, content, offset);
+    case JSON_DOUBLE: return stringifyDouble(json, content, offset);
     case JSON_STRING: return stringifyString(json, content, offset);
     case JSON_ARRAY:  return stringifyArray(json, content, offset);
     case JSON_OBJECT: return stringifyObject(json, content, offset);

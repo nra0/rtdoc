@@ -178,16 +178,58 @@ static void testJsonParseComplex(void) {
   jsonFree(json);
 }
 
-static void testJsonStringifyLiteral(void) {
+static void testStringify(Json **objects, char **values, unsigned int numValues) {
   char *string;
-  Json *objects[] = {jsonCreateNull(), jsonCreateTrue(), jsonCreateFalse()};
-  char *values[] = {"null", "true", "false"};
-  for (int i = 0; i < arraySize(objects); i++) {
+  for (int i = 0; i < numValues; i++) {
     string = jsonStringify(objects[i]);
     assertStringEqual(values[i], string);
     mfree(string);
     jsonFree(objects[i]);
   }
+}
+
+static void testJsonStringifyLiterals(void) {
+  Json *objects[] = {
+    jsonCreateNull(),
+    jsonCreateTrue(),
+    jsonCreateFalse()
+  };
+  char *values[] = {
+    "null",
+    "true",
+    "false"
+  };
+  testStringify(objects, values, arraySize(objects));
+}
+
+static void testJsonStringifyNumbers(void) {
+  Json *objects[] = {
+    jsonCreateInt(0),
+    jsonCreateInt(42),
+    jsonCreateInt(-3),
+    jsonCreateDouble(3.4),
+    jsonCreateDouble(-123.4523)
+  };
+  char *values[] = {
+    "0",
+    "42",
+    "-3",
+    "3.4",
+    "-123.4523"
+  };
+  testStringify(objects, values, arraySize(objects));
+}
+
+static void testJsonStringifyStrings(void) {
+
+}
+
+static void testJsonStringifyArrays(void) {
+
+}
+
+static void testJsonStringifyObjects(void) {
+
 }
 
 
@@ -200,6 +242,10 @@ TestSuite *jsonTestSuite() {
   testSuiteAdd(suite, "parse arrays", &testJsonParseArray);
   testSuiteAdd(suite, "parse objects", &testJsonParseObject);
   testSuiteAdd(suite, "parse complex objects", &testJsonParseComplex);
-  testSuiteAdd(suite, "stringify literals", &testJsonStringifyLiteral);
+  testSuiteAdd(suite, "stringify literals", &testJsonStringifyLiterals);
+  testSuiteAdd(suite, "stringify numbers", &testJsonStringifyNumbers);
+  testSuiteAdd(suite, "stringify strings", &testJsonStringifyStrings);
+  testSuiteAdd(suite, "stringify arrays", &testJsonStringifyArrays);
+  testSuiteAdd(suite, "stringify objects", &testJsonStringifyObjects);
   return suite;
 }
