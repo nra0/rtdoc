@@ -271,6 +271,23 @@ static void testJsonStringifyObjects(void) {
   testStringify(objects, values, arraySize(objects));
 }
 
+static void testJsonConvertComplex(void) {
+  Json *json;
+  char *string;
+  char *values[] = {
+    "{\"foo\":[0,1,2,3.3,3,\"bar\"],\"baz\":{\"fee\":[{\"abc\":\"cde\"}]}}",
+    "[\"a\",\"b\",false,false,true,null,[null,[false,true]]]",
+    "[1,2.2,false,{\"foo\":3.3},{\"bar\":[null,\"hi lo\"]}]"
+  };
+  for (int i = 0; i < arraySize(values); i++) {
+    json = jsonParse(values[i], &err);
+    string = jsonStringify(json);
+    assertStringEqual(values[i], string);
+    mfree(string);
+    jsonFree(json);
+  }
+}
+
 
 TestSuite *jsonTestSuite() {
   TestSuite *suite = testSuiteCreate("JSON", &setup, &teardown);
@@ -286,5 +303,6 @@ TestSuite *jsonTestSuite() {
   testSuiteAdd(suite, "stringify strings", &testJsonStringifyStrings);
   testSuiteAdd(suite, "stringify arrays", &testJsonStringifyArrays);
   testSuiteAdd(suite, "stringify objects", &testJsonStringifyObjects);
+  testSuiteAdd(suite, "convert complex objects", &testJsonConvertComplex);
   return suite;
 }

@@ -360,7 +360,7 @@ static const char *parseObject(Json *json, const char *content, char **err) {
   /* End of the object. */
   if (*content != OBJECT_END)
     return fail(content, err);
-  return content;
+  return inc(content);
 }
 
 static const char *parseNext(Json *json, const char *content, char **err) {
@@ -427,6 +427,7 @@ Json *jsonParse(const char *content, char **err) {
 static int stringifyNext(const Json *json, char *content, unsigned int offset);
 
 static char *reallocContent(char *content) {
+  printf("reallocating");
   return mrealloc(content, msize(content) * 2 + 1);
 }
 
@@ -469,12 +470,17 @@ static int stringifyInt(const Json *json, char *content, unsigned int offset) {
 static int stringifyDouble(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_DOUBLE);
 
-  int length = snprintf(NULL, 0, "%8g", json->doubleValue);
-
+  int length = snprintf(NULL, 0, "%f", json->doubleValue);
   if (offset + length > msize(content))
     content = reallocContent(content);
 
-  sprintf(content + offset, "%.8g", json->doubleValue);
+  sprintf(content + offset, "%f", json->doubleValue);
+
+  /* Trim of trailing zeros. */
+  while (content[offset + length - 1] == '0')
+    length--;
+  content[offset + length] = '\0';
+
   return length;
 }
 
