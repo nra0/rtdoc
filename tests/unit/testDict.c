@@ -7,6 +7,7 @@
 
 
 Dict *dict;
+DictIter *iter;
 
 
 static void setup(void) {
@@ -27,19 +28,18 @@ static void testDictSingleValue(void) {
 
 static void testDictManyValues(void) {
   int numValues = 8192;
-  char *key = mmalloc(128);
+  char key[8];
   for (int i = 0; i < numValues; i++) {
     sprintf(key, "key%d", i);
     dict = dictSet(dict, key, boxCreate(i));
   }
-  mfree(key);
   assertEqual(numValues, dictSize(dict));
   assertEqual(7182, boxValue(dictGet(dict, "key7182")));
 }
 
 static void testDictRemove(void) {
   int numValues = 32;
-  char *key = mmalloc(128);
+  char key[8];
   for (int i = 0; i < numValues; i++) {
     sprintf(key, "key%d", i);
     dict = dictSet(dict, key, boxCreate(i));
@@ -50,7 +50,6 @@ static void testDictRemove(void) {
     assertEqual(numValues - i - 1, dictSize(dict));
     assertNull(dictGet(dict, key));
   }
-  mfree(key);
 }
 
 static void testDictMutationKey(void) {
@@ -61,6 +60,20 @@ static void testDictMutationKey(void) {
   assertNotNull(dictGet(dict, "key"));
 }
 
+static void testDictIter(void) {
+  int numValues = 1;
+  char key[8];
+  for (int i = 0; i < numValues; i++) {
+    sprintf(key, "key%d", i);
+    dictSet(dict, key, boxCreate(i));
+  }
+  iter = dictIter(dict);
+  for (int i = 0; i < numValues; i++)
+    assertNotNull(dictIterNext(iter));
+  assertNull(dictIterNext(iter));
+  dictIterFree(iter);
+}
+
 
 TestSuite *dictTestSuite() {
   TestSuite *suite = testSuiteCreate("hash map", &setup, &teardown);
@@ -68,5 +81,6 @@ TestSuite *dictTestSuite() {
   testSuiteAdd(suite, "set many values", &testDictManyValues);
   testSuiteAdd(suite, "remove key", &testDictRemove);
   testSuiteAdd(suite, "key mutation", &testDictMutationKey);
+  testSuiteAdd(suite, "key iteration", &testDictIter);
   return suite;
 }

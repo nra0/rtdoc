@@ -21,9 +21,9 @@
  * The caller should instantiate methods to free the value.
  */
 struct Dict {
-  unsigned int size;        /* How many entries are in the dict. */
-  unsigned int numBuckets;  /* The number of buckets. */
-  List **buckets;           /* Linked lists to chain values with the same hash. */
+  unsigned int size;          /* How many entries are in the dict. */
+  unsigned int numBuckets;    /* The number of buckets. */
+  List **buckets;             /* Linked lists to chain values with the same hash. */
   void (*free)(void *value);
 };
 
@@ -31,10 +31,19 @@ struct Dict {
  * A key/value entry placed in bucket chains.
  */
 typedef struct DictEntry {
-  char *key;    /* The key to lookup the value by. */
-  void *value;  /* The value associated with the key. */
-  Dict *dict;   /* The parent dictionary containing the entry. */
+  char *key;                  /* The key to lookup the value by. */
+  void *value;                /* The value associated with the key. */
+  Dict *dict;                 /* The parent dictionary containing the entry. */
 } DictEntry;
+
+/*
+ * Iterator through a dictionary's keys.
+ */
+ struct DictIter {
+   Dict *dict;                /* The dictionary to iterate. */
+   int bucket;                /* The current bucket we are iterating. */
+   ListIter *iter;            /* The current iterator. */
+ };
 
 
 /**********************************************************************
@@ -249,4 +258,59 @@ void *dictGet(const Dict *dict, char *key) {
     return NULL;
 
   return entry->value;
+}
+
+
+/**********************************************************************
+ *                       Dictionary iteration.
+ *********************************************************************/
+
+static void dictIterScan(DictIter *iter) {
+  assert(iter != NULL);
+
+  while (iter->bucket < iter->dict->numBuckets && iter->dict->buckets[iter->bucket] == NULL) {
+    iter->bucket++;
+  }
+
+  if (iter->bucket == iter->dict->numBuckets)
+    iter->bucket = -1;
+  else
+    iter->iter = listIter(iter->dict->buckets[iter->bucket], LIST_ITER_FORWARD);
+}
+
+DictIter *dictIter(Dict *dict) {
+  assert(dict != NULL);
+
+  DictIter *iter = mcalloc(sizeof(DictIter));
+  iter->dict = dict;
+  dictIterScan(iter);
+
+  return iter;
+}
+
+char *dictIterNext(DictIter *iter) {
+  assert(iter != NULL);
+
+  DictEntry *entry;
+
+  if (iter->bucket == -1)
+    return NULL;
+
+  if ((entry = listIterNext(iter->iter)) == NULL) {
+    listIterFree(iter->iter);
+    iter->iter = NULL;
+    iter->bucket++;
+    dictIterScan(iter);
+    return dictIterNext(iter);
+  }
+
+  return entry->key;
+}
+
+void dictIterFree(DictIter *iter) {
+  assert(iter != NULL);
+
+  if (iter->iter != NULL)
+    listIterFree(iter->iter);
+  mfree(iter);
 }

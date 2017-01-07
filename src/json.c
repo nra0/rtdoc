@@ -479,9 +479,9 @@ static int stringifyDouble(const Json *json, char *content, unsigned int offset)
 static int stringifyString(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_STRING);
 
-  int length = strlen(json->stringValue);
+  int length = strlen(json->stringValue) + 2;
 
-  if (offset + length + 2 > msize(content))
+  if (offset + length > msize(content))
     content = reallocContent(content);
 
   sprintf(content + offset, "\"%s\"", json->stringValue);
@@ -489,7 +489,12 @@ static int stringifyString(const Json *json, char *content, unsigned int offset)
 }
 
 static int stringifyArray(const Json *json, char *content, unsigned int offset) {
-  return 0;
+  assert(json->type == JSON_ARRAY);
+
+  if (offset + 1 > msize(content))
+    content = reallocContent(content);
+
+  *++content = '[';
 }
 
 static int stringifyObject(const Json *json, char *content, unsigned int offset) {

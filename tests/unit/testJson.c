@@ -235,7 +235,19 @@ static void testJsonStringifyStrings(void) {
 }
 
 static void testJsonStringifyArrays(void) {
-
+  List *list1 = listCreate(LIST_TYPE_ARRAY, &jsonFree);
+  List *list2 = listCreate(LIST_TYPE_ARRAY, &jsonFree);
+  for (int i = 0; i < 8; i++)
+    listAppend(list2, jsonCreateInt(i));
+  Json *objects[] = {
+    jsonCreateArray(list1),
+    jsonCreateArray(list2)
+  };
+  char *values[] = {
+    "[]",
+    "[0,1,2,3,4,5,6,7]"
+  };
+  testStringify(objects, values, arraySize(objects));
 }
 
 static void testJsonStringifyObjects(void) {
