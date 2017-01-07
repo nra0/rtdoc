@@ -84,8 +84,9 @@ Json *jsonCreateDouble(double value) {
  */
 Json *jsonCreateString(char *value) {
   Json *json = jsonCreate();
+  json->stringValue = mmalloc(strlen(value) + 1);
   json->type = JSON_STRING;
-  json->stringValue = value;
+  strcpy(json->stringValue, value);
   return json;
 }
 
@@ -466,7 +467,7 @@ static int stringifyInt(const Json *json, char *content, unsigned int offset) {
 static int stringifyDouble(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_DOUBLE);
 
-  int length = snprintf(NULL, 0, "%g", json->doubleValue);
+  int length = snprintf(NULL, 0, "%8g", json->doubleValue);
 
   if (offset + length > msize(content))
     content = reallocContent(content);
@@ -476,7 +477,15 @@ static int stringifyDouble(const Json *json, char *content, unsigned int offset)
 }
 
 static int stringifyString(const Json *json, char *content, unsigned int offset) {
-  return 0;
+  assert(json->type == JSON_STRING);
+
+  int length = strlen(json->stringValue);
+
+  if (offset + length + 2 > msize(content))
+    content = reallocContent(content);
+
+  sprintf(content + offset, "\"%s\"", json->stringValue);
+  return length;
 }
 
 static int stringifyArray(const Json *json, char *content, unsigned int offset) {

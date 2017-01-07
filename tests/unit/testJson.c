@@ -221,7 +221,17 @@ static void testJsonStringifyNumbers(void) {
 }
 
 static void testJsonStringifyStrings(void) {
-
+  Json *objects[] = {
+    jsonCreateString(""),
+    jsonCreateString("hello"),
+    jsonCreateString("blah \n next line \t\t\n\r\t \\\"hello!\"\\")
+  };
+  char *values[] = {
+    "\"\"",
+    "\"hello\"",
+    "\"blah \n next line \t\t\n\r\t \\\"hello!\"\\\""
+  };
+  testStringify(objects, values, arraySize(objects));
 }
 
 static void testJsonStringifyArrays(void) {
