@@ -421,39 +421,61 @@ Json *jsonParse(const char *content, char **err) {
 
 #define JSON_STRING_INITIAL_SIZE   256
 
-int stringifyNull(const Json *json, char **content) {
+
+static char *reallocContent(char *content) {
+  return mrealloc(content, msize(content) * 2 + 1);
+}
+
+static int stringifyNull(const Json *json, char *content, unsigned int offset) {
+  assert(json->type == JSON_NULL);
+
+  if (offset + NULL_LEN < msize(content))
+    content = reallocContent(content);
+
+  strcpy(content + offset, NULL_LITERAL);
+  return NULL_LEN;
+}
+
+static int stringifyBool(const Json *json, char *content, unsigned int offset) {
+  assert(json->type == JSON_BOOL);
+
+  if (offset + FALSE_LEN < msize(content))
+    content = reallocContent(content);
+
+  if (json->boolValue) {
+    strcpy(content + offset, TRUE_LITERAL);
+    return TRUE_LEN;
+  } else {
+    strcpy(content + offset, FALSE_LITERAL);
+    return FALSE_LEN;
+  }
+}
+
+static int stringifyNumber(const Json *json, char *content, unsigned int offset) {
   return 0;
 }
 
-int stringifyNumber(const Json *json, char **content) {
+static int stringifyString(const Json *json, char *content, unsigned int offset) {
   return 0;
 }
 
-int stringifyBool(const Json *json, char **content) {
+static int stringifyArray(const Json *json, char *content, unsigned int offset) {
   return 0;
 }
 
-int stringifyString(const Json *json, char **content) {
+static int stringifyObject(const Json *json, char *content, unsigned int offset) {
   return 0;
 }
 
-int stringifyArray(const Json *json, char **content) {
-  return 0;
-}
-
-int stringifyObject(const Json *json, char **content) {
-  return 0;
-}
-
-int stringifyNext(const Json *json, char **content) {
+int stringifyNext(const Json *json, char *content, unsigned int offset) {
   switch (json->type) {
-    case JSON_NULL:   return stringifyNull(json, content);
-    case JSON_BOOL:   return stringifyBool(json, content);
+    case JSON_NULL:   return stringifyNull(json, content, offset);
+    case JSON_BOOL:   return stringifyBool(json, content, offset);
     case JSON_INT:
-    case JSON_DOUBLE: return stringifyNumber(json, content);
-    case JSON_STRING: return stringifyString(json, content);
-    case JSON_ARRAY:  return stringifyArray(json, content);
-    case JSON_OBJECT: return stringifyObject(json, content);
+    case JSON_DOUBLE: return stringifyNumber(json, content, offset);
+    case JSON_STRING: return stringifyString(json, content, offset);
+    case JSON_ARRAY:  return stringifyArray(json, content, offset);
+    case JSON_OBJECT: return stringifyObject(json, content, offset);
   }
 }
 
@@ -467,6 +489,6 @@ char *jsonStringify(const Json *json) {
   assert(json != NULL);
 
   char *content = mcalloc(JSON_STRING_INITIAL_SIZE);
-  stringifyNext(json, &content);
+  stringifyNext(json, content, 0);
   return content;
 }

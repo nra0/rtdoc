@@ -2,6 +2,8 @@
 #include "testMmalloc.h"
 #include "../../src/mmalloc.h"
 
+#include <string.h>
+
 
 int OOMSize;
 
@@ -61,6 +63,15 @@ static void testRealloc(void) {
   mfree(ptr);
 }
 
+static void testReallocPreserveData(void) {
+  size_t s1 = 6, s2 = 32;
+  char *ptr = mmalloc(s1);
+  strcpy(ptr, "hello");
+  ptr = mrealloc(ptr, s2);
+  assertStringEqual("hello", ptr);
+  mfree(ptr);
+}
+
 static void testMemoryUsage(void) {
   Box *boxes[24];
   int numBoxes = arraySize(boxes);
@@ -103,6 +114,7 @@ TestSuite *mmallocTestSuite() {
   testSuiteAdd(suite, "free null pointer", &testFreeNull);
   testSuiteAdd(suite, "calloc", &testCalloc);
   testSuiteAdd(suite, "realloc", &testRealloc);
+  testSuiteAdd(suite, "realloc preserve data", &testReallocPreserveData);
   testSuiteAdd(suite, "memory usage tracking", &testMemoryUsage);
   testSuiteAdd(suite, "respect memory limit", &testMemoryLimit);
   testSuiteAdd(suite, "set memory limit", &testSetMemoryLimit);

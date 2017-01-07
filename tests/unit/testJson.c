@@ -178,6 +178,18 @@ static void testJsonParseComplex(void) {
   jsonFree(json);
 }
 
+static void testJsonStringifyLiteral(void) {
+  char *string;
+  Json *objects[] = {jsonCreateNull(), jsonCreateTrue(), jsonCreateFalse()};
+  char *values[] = {"null", "true", "false"};
+  for (int i = 0; i < arraySize(objects); i++) {
+    string = jsonStringify(objects[i]);
+    assertStringEqual(values[i], string);
+    mfree(string);
+    jsonFree(objects[i]);
+  }
+}
+
 
 TestSuite *jsonTestSuite() {
   TestSuite *suite = testSuiteCreate("JSON", &setup, &teardown);
@@ -188,5 +200,6 @@ TestSuite *jsonTestSuite() {
   testSuiteAdd(suite, "parse arrays", &testJsonParseArray);
   testSuiteAdd(suite, "parse objects", &testJsonParseObject);
   testSuiteAdd(suite, "parse complex objects", &testJsonParseComplex);
+  testSuiteAdd(suite, "stringify literals", &testJsonStringifyLiteral);
   return suite;
 }
