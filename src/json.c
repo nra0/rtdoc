@@ -424,6 +424,8 @@ Json *jsonParse(const char *content, char **err) {
 #define JSON_STRING_INITIAL_SIZE   256
 
 
+static int stringifyNext(const Json *json, char *content, unsigned int offset);
+
 static char *reallocContent(char *content) {
   return mrealloc(content, msize(content) * 2 + 1);
 }
@@ -491,17 +493,36 @@ static int stringifyString(const Json *json, char *content, unsigned int offset)
 static int stringifyArray(const Json *json, char *content, unsigned int offset) {
   assert(json->type == JSON_ARRAY);
 
-  if (offset + 1 > msize(content))
+  /* Room for the enclosing brackets and commas. */
+  if (offset + listLength(json->arrayValue) + 2 > msize(content))
     content = reallocContent(content);
 
-  *++content = '[';
+  int start = offset;
+  content[offset++] = '[';
+
+  ListIter *iter = listIter(json->arrayValue, LIST_ITER_FORWARD);
+  Json *entry;
+  bool first = true;
+
+  while ((entry = listIterNext(iter)) != NULL) {
+    /* Comma separate the inner values. */
+    if (!first) {
+      content[offset++] = ',';
+    }
+    first = false;
+    offset += stringifyNext(entry, content, offset);
+  }
+
+  listIterFree(iter);
+  content[offset++] = ']';
+  return offset - start;
 }
 
 static int stringifyObject(const Json *json, char *content, unsigned int offset) {
   return 0;
 }
 
-int stringifyNext(const Json *json, char *content, unsigned int offset) {
+static int stringifyNext(const Json *json, char *content, unsigned int offset) {
   switch (json->type) {
     case JSON_NULL:   return stringifyNull(json, content, offset);
     case JSON_BOOL:   return stringifyBool(json, content, offset);

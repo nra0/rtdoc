@@ -265,6 +265,12 @@ void *dictGet(const Dict *dict, char *key) {
  *                       Dictionary iteration.
  *********************************************************************/
 
+/*
+ * Scan the dictionary for the next bucket with a valid list to iterate.
+ * This function should be called when the current list is finished iterating.
+ *
+ * @param iter: The iterator to scan.
+ */
 static void dictIterScan(DictIter *iter) {
   assert(iter != NULL);
 
@@ -278,6 +284,12 @@ static void dictIterScan(DictIter *iter) {
     iter->iter = listIter(iter->dict->buckets[iter->bucket], LIST_ITER_FORWARD);
 }
 
+/*
+ * Create a new dictionary iterator.
+ *
+ * @param dict: The hashmap to iterate.
+ * @return An iterator object.
+ */
 DictIter *dictIter(Dict *dict) {
   assert(dict != NULL);
 
@@ -288,6 +300,12 @@ DictIter *dictIter(Dict *dict) {
   return iter;
 }
 
+/*
+ * Get the next key from the iterator.
+ *
+ * @param iter: The iterator to forward.
+ * @return The next key, or NULL if the iteration has ended.
+ */
 char *dictIterNext(DictIter *iter) {
   assert(iter != NULL);
 
@@ -307,6 +325,11 @@ char *dictIterNext(DictIter *iter) {
   return entry->key;
 }
 
+/*
+ * Free an existing iterator.
+ *
+ * @param iter: The iterator to free.
+ */
 void dictIterFree(DictIter *iter) {
   assert(iter != NULL);
 
