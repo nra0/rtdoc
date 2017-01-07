@@ -506,20 +506,55 @@ static int stringifyArray(const Json *json, char *content, unsigned int offset) 
 
   while ((entry = listIterNext(iter)) != NULL) {
     /* Comma separate the inner values. */
-    if (!first) {
+    if (!first)
       content[offset++] = ',';
-    }
     first = false;
     offset += stringifyNext(entry, content, offset);
   }
 
   listIterFree(iter);
   content[offset++] = ']';
+
   return offset - start;
 }
 
 static int stringifyObject(const Json *json, char *content, unsigned int offset) {
-  return 0;
+  assert(json->type == JSON_OBJECT);
+
+  /* Room for enclosing braces, commas, and colons. */
+  if (offset + dictSize(json->objectValue) * 2 + 2 > msize(content))
+    content = reallocContent(content);
+
+  int start = offset;
+  content[offset++] = '{';
+
+  DictIter *iter = dictIter(json->objectValue);
+  char *key;
+  Json *value;
+  bool first = true;
+
+  while ((key = dictIterNext(iter)) != NULL) {
+    if (!first)
+      content[offset++] = ',';
+    first = false;
+
+    if (offset + strlen(key) > msize(content))
+      reallocContent(content);
+
+    /* Write the key. */
+    sprintf(content + offset, "\"%s\"", key);
+    offset += strlen(key) + 2;
+    content[offset++] = ':';
+
+    /* Write the value. */
+    value = dictGet(json->objectValue, key);
+    offset += stringifyNext(value, content, offset);
+  }
+
+  dictIterFree(iter);
+  content[offset++] = '}';
+
+  return offset - start;
 }
 
 static int stringifyNext(const Json *json, char *content, unsigned int offset) {

@@ -3,6 +3,8 @@
 #include "../../src/json.h"
 #include "../../src/mmalloc.h"
 
+#include <stdio.h>
+
 
 #define TEST_OBJECT_SIZE 10
 
@@ -251,7 +253,22 @@ static void testJsonStringifyArrays(void) {
 }
 
 static void testJsonStringifyObjects(void) {
-
+  Dict *dict1 = dictCreate(&jsonFree);
+  Dict *dict2 = dictCreate(&jsonFree);
+  char key[8];
+  for (int i = 0; i < 3; i++) {
+    sprintf(key, "key%d", i);
+    dictSet(dict2, key, jsonCreateInt(i));
+  }
+  Json *objects[] = {
+    jsonCreateObject(dict1),
+    jsonCreateObject(dict2)
+  };
+  char *values[] = {
+    "{}",
+    "{\"key2\":2,\"key0\":0,\"key1\":1}"
+  };
+  testStringify(objects, values, arraySize(objects));
 }
 
 
