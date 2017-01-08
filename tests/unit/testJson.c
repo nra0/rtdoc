@@ -210,14 +210,14 @@ static void testJsonStringifyNumbers(void) {
     jsonCreateInt(42),
     jsonCreateInt(-3),
     jsonCreateDouble(3.4),
-    jsonCreateDouble(-123.4523)
+    jsonCreateDouble(-123.452)
   };
   char *values[] = {
     "0",
     "42",
     "-3",
     "3.4",
-    "-123.4523"
+    "-123.452"
   };
   testStringify(objects, values, arraySize(objects));
 }
