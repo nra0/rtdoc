@@ -162,7 +162,6 @@ void jsonFree(void *json) {
 /* Utility macros. */
 #define inc(p)        (p + 1)
 #define ctoi(n)       (n - '0')
-#define min(a, b)      (a < b ? a : b)
 
 /*
  * Parsing failure.
@@ -431,30 +430,23 @@ Json *jsonParse(const char *content, char **err) {
 static void stringifyNext(const Json *json, char **content);
 
 /*
- * Check that there is enough room at the end of the string to append `size` more bytes.
- * This function will reallocate the string if needed.
- *
- * @param content: Pointer to the string to validate.
- * @param size: The amount of bytes about to be appended.
- */
-static void checkSpace(char **content, size_t size) {
-  int offset = strlen(*content);
-  int curSize = msize(*content);
-  while (offset + size > curSize)
-    curSize = curSize * 2 + 1;
-
-  if (curSize > msize(*content))
-    *content = mrealloc(*content, curSize);
-}
-
-/*
  * Concatenate a value to the end of a string without worrying about buffer overflows.
  *
  * @param content: The string to update.
  * @param value: The string to append.
  */
 static void concat(char **content, const char *value) {
-  checkSpace(content, strlen(value));
+  int offset  = strlen(*content),
+      size    = strlen(value),
+      oldSize = msize(*content),
+      newSize = oldSize;
+
+  /* Check how much room to allocate. */
+  while (offset + size > newSize)
+    newSize = newSize * 2 + 1;
+  if (newSize > oldSize)
+    *content = mrealloc(*content, newSize);
+
   strcat(*content, value);
 }
 
@@ -499,11 +491,11 @@ static void stringifyString(const Json *json, char **content) {
 static void stringifyArray(const Json *json, char **content) {
   assert(json->type == JSON_ARRAY);
 
-  char holder[2];
+  char buffer[2];
 
   /* Opening bracket. */
-  sprintf(holder, "%c", ARRAY_BEGIN);
-  concat(content, holder);
+  sprintf(buffer, "%c", ARRAY_BEGIN);
+  concat(content, buffer);
 
   /* Inner values. */
   ListIter *iter = listIter(json->arrayValue, LIST_ITER_FORWARD);
@@ -512,8 +504,8 @@ static void stringifyArray(const Json *json, char **content) {
 
   while ((entry = listIterNext(iter)) != NULL) {
     if (!first) {
-      sprintf(holder, "%c", VALUE_SEP);
-      concat(content, holder);
+      sprintf(buffer, "%c", VALUE_SEP);
+      concat(content, buffer);
     }
     first = false;
     stringifyNext(entry, content);
@@ -522,18 +514,18 @@ static void stringifyArray(const Json *json, char **content) {
   listIterFree(iter);
 
   /* Closing bracket. */
-  sprintf(holder, "%c", ARRAY_END);
-  concat(content, holder);
+  sprintf(buffer, "%c", ARRAY_END);
+  concat(content, buffer);
 }
 
 static void stringifyObject(const Json *json, char **content) {
   assert(json->type == JSON_OBJECT);
 
-  char holder[2], keyHolder[JSON_DICT_KEY_MAX_SIZE];
+  char buffer[2], keyBuffer[JSON_DICT_KEY_MAX_SIZE];
 
   /* Opening brace. */
-  sprintf(holder, "%c", OBJECT_BEGIN);
-  concat(content, holder);
+  sprintf(buffer, "%c", OBJECT_BEGIN);
+  concat(content, buffer);
 
   /* Inner values. */
   DictIter *iter = dictIter(json->objectValue);
@@ -543,18 +535,14 @@ static void stringifyObject(const Json *json, char **content) {
 
   while ((key = dictIterNext(iter)) != NULL) {
     if (!first) {
-      sprintf(holder, "%c", VALUE_SEP);
-      concat(content, holder);
+      sprintf(buffer, "%c", VALUE_SEP);
+      concat(content, buffer);
     }
     first = false;
 
     /* Write the key. */
-    sprintf(keyHolder, "%c%s%c", STRING_SEP, key, STRING_SEP);
-    concat(content, keyHolder);
-
-    /* Colon to separate key from value. */
-    sprintf(holder, "%c", KEY_SEP);
-    concat(content, holder);
+    sprintf(keyBuffer, "%c%s%c%c", STRING_SEP, key, STRING_SEP, KEY_SEP);
+    concat(content, keyBuffer);
 
     /* Write the value. */
     value = dictGet(json->objectValue, key);
@@ -564,8 +552,8 @@ static void stringifyObject(const Json *json, char **content) {
   dictIterFree(iter);
 
   /* Closing brace. */
-  sprintf(holder, "%c", OBJECT_END);
-  concat(content, holder);
+  sprintf(buffer, "%c", OBJECT_END);
+  concat(content, buffer);
 }
 
 static void stringifyNext(const Json *json, char **content) {
