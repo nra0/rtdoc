@@ -1,5 +1,5 @@
 #include "dict.h"
-#include "document.h"
+#include "doc.h"
 #include "mmalloc.h"
 #include "server.h"
 
@@ -94,26 +94,6 @@ void serverSetVerbosity(RTServer *server, bool verbose) {
   server->verbose = verbose;
 }
 
-/*
- * Start an existing server.
- *
- * @param server: The server to start.
- */
-void serverStart(RTServer *server) {
-  assert(server != NULL);
-
-  int clientfd;
-
-  if (server->verbose)
-    printf("Starting RTDoc server on port %d\n", server->port);
-
-  listen(server->fd, BACKLOG_SIZE);
-  while (true) {
-    clientfd = accept(server->fd, NULL, NULL);
-    write(clientfd, "hello there", strlen("hello there"));
-  }
-}
-
 
 /********************************************************************************
  *                            Modify the store.
@@ -147,6 +127,13 @@ int serverAddDocument(RTServer *server, char *key, char *contents) {
  return 0;
 }
 
+/*
+ * Get the document object with the given key.
+ *
+ * @param server: The server to fetch from.
+ * @param key: The document identifier.
+ * @return The matching document.
+ */
 static Document *serverGetDoc(RTServer *server, char *key) {
   Document *doc;
 
@@ -163,7 +150,7 @@ static Document *serverGetDoc(RTServer *server, char *key) {
 * @param key: The identifier for the document.
 * @return The contents of the document.
 */
-char *serverGetDocument(RTServer *server, char *key) {
+static char *serverGetDocument(RTServer *server, char *key) {
  assert(server != NULL);
  assert(key != NULL);
 
@@ -183,7 +170,7 @@ char *serverGetDocument(RTServer *server, char *key) {
  * @param userId: The identifier of the user to add.
  * @return `0` on success, `-1` on an error.
  */
-int serverAddCollaborator(RTServer *server, char *key, char *userId) {
+static int serverAddCollaborator(RTServer *server, char *key, char *userId) {
   assert(server != NULL);
   assert(key != NULL);
   assert(userId != NULL);
@@ -205,7 +192,7 @@ int serverAddCollaborator(RTServer *server, char *key, char *userId) {
  * @param userId: The identifier of the user to remove.
  * @return `0` on success, `-1` on an error.
  */
-int serverRemoveCollaborator(RTServer *server, char *key, char *userId) {
+static int serverRemoveCollaborator(RTServer *server, char *key, char *userId) {
   assert(server != NULL);
   assert(key != NULL);
   assert(userId != NULL);
@@ -228,6 +215,31 @@ int serverRemoveCollaborator(RTServer *server, char *key, char *userId) {
  * @param change: The transform to apply to the document.
  * @return `0` on success, `-1` on an error.
  */
-int serverModifyDocument(RTServer *server, char *key, char *userId, char *change) {
+static int serverModifyDocument(RTServer *server, char *key, char *userId, char *change) {
   return 0;
+}
+
+
+/********************************************************************************
+ *                           Run the server instance.
+ *******************************************************************************/
+
+/*
+* Start an existing server.
+*
+* @param server: The server to start.
+*/
+void serverStart(RTServer *server) {
+ assert(server != NULL);
+
+ int clientfd;
+
+ if (server->verbose)
+   printf("Starting RTDoc server on port %d\n", server->port);
+
+ listen(server->fd, BACKLOG_SIZE);
+ while (true) {
+   clientfd = accept(server->fd, NULL, NULL);
+   write(clientfd, "hello there", strlen("hello there"));
+ }
 }

@@ -1,5 +1,6 @@
 #include "lib.h"
 #include "unit/testDict.h"
+#include "unit/testDoc.h"
 #include "unit/testJson.h"
 #include "unit/testList.h"
 #include "unit/testMmalloc.h"
@@ -49,7 +50,8 @@ int main(int argc, char **argv) {
     mmallocTestSuite(),
     listTestSuite(),
     dictTestSuite(),
-    jsonTestSuite()
+    jsonTestSuite(),
+    documentTestSuite()
   };
 
   if (argc > 1)
