@@ -13,9 +13,17 @@ typedef struct Collaborator Collaborator;
 
 /* Memory management. */
 Document *documentCreate(char *key, Json *contents);
-void documentFree(Document *doc);
-
+void documentFree(void *doc);
 Collaborator *collaboratorCreate(char *userId);
-void collaboratorFree(Collaborator *user);
+void collaboratorFree(void *user);
+
+/* Get information on documents. */
+Json *documentGetContents(Document *doc);
+List *documentGetCollaborators(Document *doc);
+char *collaboratorGetKey(Collaborator *user);
+
+/* Modify documents. */
+void documentAddCollaborator(Document *doc, Collaborator *user);
+void documentRemoveCollaborator(Document *doc, char *user);
 
 #endif

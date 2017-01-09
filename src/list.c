@@ -74,24 +74,42 @@ struct List {
 /*
  * Get an iterator to traverse the list.
  *
- * The iterator can run in either direction, and should be freed by the caller.
+ * The iterator should be freed by the caller.
  * The next value can be retrieved by calling `listIterNext`, which will return NULL on completion.
  *
  * @param list: The list to iterate.
- * @param direction: Either `LIST_ITER_FORWARD` or `LIST_ITER_REVERSE`.
  * @return An iterator for the list.
  */
-ListIter *listIter(List *list, bool reverse) {
+ListIter *listIter(List *list) {
   assert(list != NULL);
 
   ListIter *iter = mmalloc(sizeof(ListIter));
   iter->list = list;
-  iter->reverse = reverse;
-
+  iter->reverse = false;
   if (list->linked)
-    iter->next = reverse ? list->llist->tail : list->llist->head;
+    iter->next = list->llist->head;
   else
-    iter->index = reverse ? list->length - 1 : 0;
+    iter->index = 0;
+
+  return iter;
+}
+
+/*
+ * A list iterator that runs in the opposite direction.
+ *
+ * @param list: The list to iterate.
+ * @return A reverse iterator for the list.
+ */
+ListIter *listIterReverse(List *list) {
+  assert(list != NULL);
+
+  ListIter *iter = mmalloc(sizeof(ListIter));
+  iter->list = list;
+  iter->reverse = true;
+  if (list->linked)
+    iter->next = list->llist->tail;
+  else
+    iter->index = list->length - 1;
 
   return iter;
 }
@@ -203,9 +221,9 @@ static ListEntry *listGetEntry(const List *list, unsigned int index) {
   ListEntry *entry;
 
   if (index < list->length / 2) {
-    iter = listIter((List*) list, LIST_ITER_FORWARD);
+    iter = listIter((List*) list);
   } else {
-    iter = listIter((List*) list, LIST_ITER_REVERSE);
+    iter = listIterReverse((List*) list);
     index = list->length - index - 1;
   }
 
@@ -249,7 +267,7 @@ List *listCreate(bool linked, void (*freeFn)(void *value)) {
  */
 static void listFreeArray(List *list) {
   void *entry;
-  ListIter *iter = listIter(list, LIST_ITER_FORWARD);
+  ListIter *iter = listIter(list);
 
   while ((entry = listIterNext(iter)) != NULL)
     list->free(entry);
@@ -263,7 +281,7 @@ static void listFreeArray(List *list) {
  */
 static void listFreeLinked(List *list) {
   ListEntry *entry;
-  ListIter *iter = listIter(list, LIST_ITER_FORWARD);
+  ListIter *iter = listIter(list);
 
   while ((entry = listIterNextEntry(iter)) != NULL) {
     list->free(entry->value);

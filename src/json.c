@@ -498,7 +498,7 @@ static void stringifyArray(const Json *json, char **content) {
   concat(content, buffer);
 
   /* Inner values. */
-  ListIter *iter = listIter(json->arrayValue, LIST_ITER_FORWARD);
+  ListIter *iter = listIter(json->arrayValue);
   Json *entry;
   bool first = true;
 

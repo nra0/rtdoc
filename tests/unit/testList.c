@@ -78,7 +78,7 @@ static void testListRemove(void) {
 static void testListIterHelper(List *list, bool reverse) {
   for (int i = 0; i < DEFAULT_LIST_SIZE; i++)
     listAppend(list, boxCreate(i));
-  ListIter *iter = listIter(list, reverse);
+  ListIter *iter = reverse ? listIterReverse(list) : listIter(list);
   for (int i = 0; i < DEFAULT_LIST_SIZE; i++) {
     int value = reverse ? DEFAULT_LIST_SIZE - i - 1 : i;
     assertEqual(value, boxValue(listIterNext(iter)));
@@ -88,13 +88,13 @@ static void testListIterHelper(List *list, bool reverse) {
 }
 
 static void testListIterForward(void) {
-  testListIterHelper(alist, LIST_ITER_FORWARD);
-  testListIterHelper(llist, LIST_ITER_FORWARD);
+  testListIterHelper(alist, true);
+  testListIterHelper(llist, true);
 }
 
 static void testListIterReverse(void) {
-  testListIterHelper(alist, LIST_ITER_REVERSE);
-  testListIterHelper(llist, LIST_ITER_REVERSE);
+  testListIterHelper(alist, false);
+  testListIterHelper(llist, false);
 }
 
 

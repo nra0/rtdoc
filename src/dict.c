@@ -172,7 +172,7 @@ static int getDictEntry(List *list, char *key, DictEntry **entry) {
 
   /* Multiple entries in the list. */
   int index = 0;
-  ListIter *iter = listIter(list, LIST_ITER_FORWARD);
+  ListIter *iter = listIter(list);
 
   while ((*entry = listIterNext(iter)) != NULL) {
     if (!strcmp(key, (*entry)->key)) {
@@ -281,7 +281,7 @@ static void dictIterScan(DictIter *iter) {
   if (iter->bucket == iter->dict->numBuckets)
     iter->bucket = -1;
   else
-    iter->iter = listIter(iter->dict->buckets[iter->bucket], LIST_ITER_FORWARD);
+    iter->iter = listIter(iter->dict->buckets[iter->bucket]);
 }
 
 /*
