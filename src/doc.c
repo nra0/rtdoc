@@ -71,7 +71,7 @@ void documentFree(void *doc) {
 Collaborator *collaboratorCreate(char *userId) {
   assert(userId != NULL);
 
-  Collaborator *user = malloc(sizeof(Collaborator));
+  Collaborator *user = mmalloc(sizeof(Collaborator));
   user->userId = mmalloc(strlen(userId) + 1);
   strcpy(user->userId, userId);
 
@@ -146,6 +146,41 @@ void documentAddCollaborator(Document *doc, Collaborator *user) {
   listAppend(doc->collaborators, user);
 }
 
+static int getCollaborator(List *list, char *key, Collaborator **user) {
+  int length = listLength(list);
+
+  if (length == 0)
+    return -1;
+
+  if (length == 1) {
+    /* Common case. */
+    *user = listGet(list, 0);
+    if (strcmp(key, (*user)->userId)) {
+      /* Wrong key. */
+      *user = NULL;
+      return -1;
+    }
+    return 0;
+  }
+
+  /* Multiple entries in the list. */
+  int index = 0;
+  ListIter *iter = listIter(list);
+
+  while ((*user = listIterNext(iter)) != NULL) {
+    if (!strcmp(key, (*user)->userId)) {
+      /* Found a match! */
+      listIterFree(iter);
+      return index;
+    }
+    index++;
+  }
+  /* Did not find the key. */
+  *user = NULL;
+  listIterFree(iter);
+  return -1;
+}
+
 /*
  * Remove a collaborator from the document, if it a matching one exists.
  *
@@ -156,18 +191,11 @@ void documentRemoveCollaborator(Document *doc, char *userId) {
   assert(doc != NULL);
   assert(userId != NULL);
 
-  ListIter *iter = listIter(doc->collaborators);
   Collaborator *user;
-  int index = 0;
+  int index;
 
-  while ((user = listIterNext(iter)) != NULL) {
-    if (!strcmp(user->userId, userId)) {
-      /* This is the user to remove. */
-      listRemove(doc->collaborators, index);
-      break;
-    }
-    index++;
-  }
+  if ((index = getCollaborator(doc->collaborators, userId, &user)) < 0)
+    return;
 
-  mfree(iter);
+  listRemove(doc->collaborators, index);
 }

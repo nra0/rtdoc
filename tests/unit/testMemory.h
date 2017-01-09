@@ -5,6 +5,6 @@
  * Test memory allocation.
  */
 
-TestSuite *mmallocTestSuite(void);
+TestSuite *memoryTestSuite(void);
 
 #endif

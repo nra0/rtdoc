@@ -99,15 +99,7 @@ void serverSetVerbosity(RTServer *server, bool verbose) {
  *                            Modify the store.
  *******************************************************************************/
 
-/*
-* Add a new document to the key/value store.
-*
-* @param server: The server to modify.
-* @param key: The key to set or update.
-* @param contents: The Json contents to set for the key.
-* @return `0` on success, `-1` on an error.
-*/
-int serverAddDocument(RTServer *server, char *key, char *contents) {
+static int serverAddDocument(RTServer *server, char *key, char *contents) {
  assert(server != NULL);
  assert(key != NULL);
  assert(contents != NULL);
@@ -127,14 +119,7 @@ int serverAddDocument(RTServer *server, char *key, char *contents) {
  return 0;
 }
 
-/*
- * Get the document object with the given key.
- *
- * @param server: The server to fetch from.
- * @param key: The document identifier.
- * @return The matching document.
- */
-static Document *serverGetDoc(RTServer *server, char *key) {
+static Document *serverGetDocument(RTServer *server, char *key) {
   Document *doc;
 
   if ((doc = dictGet(server->documents, key)) == NULL)
@@ -143,33 +128,18 @@ static Document *serverGetDoc(RTServer *server, char *key) {
   return doc;
 }
 
-/*
-* Get the Json contents of a given document as a string.
-*
-* @param server: The server to lookup.
-* @param key: The identifier for the document.
-* @return The contents of the document.
-*/
-static char *serverGetDocument(RTServer *server, char *key) {
+static char *serverGetDocumentContents(RTServer *server, char *key) {
  assert(server != NULL);
  assert(key != NULL);
 
  Document *doc;
 
- if ((doc = serverGetDoc(server, key)) == NULL)
+ if ((doc = serverGetDocument(server, key)) == NULL)
   return NULL;
 
  return jsonStringify(documentGetContents(doc));
 }
 
-/*
- * Begin a new editing session by adding a user to a document.
- *
- * @param server: The server containing the document.
- * @param key: The document identifier.
- * @param userId: The identifier of the user to add.
- * @return `0` on success, `-1` on an error.
- */
 static int serverAddCollaborator(RTServer *server, char *key, char *userId) {
   assert(server != NULL);
   assert(key != NULL);
@@ -177,21 +147,13 @@ static int serverAddCollaborator(RTServer *server, char *key, char *userId) {
 
   Document *doc;
 
-  if ((doc = serverGetDoc(server, key)) == NULL)
+  if ((doc = serverGetDocument(server, key)) == NULL)
     return -1;
 
   documentAddCollaborator(doc, collaboratorCreate(userId));
   return 0;
 }
 
-/*
- * Remove a collaborator from a document and end the editing session.
- *
- * @param server: The server containing the document.
- * @param key: The document identifier.
- * @param userId: The identifier of the user to remove.
- * @return `0` on success, `-1` on an error.
- */
 static int serverRemoveCollaborator(RTServer *server, char *key, char *userId) {
   assert(server != NULL);
   assert(key != NULL);
@@ -199,22 +161,13 @@ static int serverRemoveCollaborator(RTServer *server, char *key, char *userId) {
 
   Document *doc;
 
-  if ((doc = serverGetDoc(server, key)) == NULL)
+  if ((doc = serverGetDocument(server, key)) == NULL)
     return -1;
 
   documentRemoveCollaborator(doc, userId);
   return 0;
 }
 
-/*
- * Modify a document with a transform.
- *
- * @param server: The server containing the document.
- * @param key: The document identifier.
- * @param userId: The identifier of the user updating the document.
- * @param change: The transform to apply to the document.
- * @return `0` on success, `-1` on an error.
- */
 static int serverModifyDocument(RTServer *server, char *key, char *userId, char *change) {
   return 0;
 }

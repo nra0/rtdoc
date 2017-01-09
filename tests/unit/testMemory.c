@@ -1,5 +1,5 @@
 #include "../lib.h"
-#include "testMmalloc.h"
+#include "testMemory.h"
 #include "../../src/mmalloc.h"
 
 #include <string.h>
@@ -127,7 +127,7 @@ static void testSetMemoryLimit(void) {
   setMemoryLimit(0);
 }
 
-TestSuite *mmallocTestSuite() {
+TestSuite *memoryTestSuite() {
   TestSuite *suite = testSuiteCreate("memory aware allocations", NULL, &teardown);
   testSuiteAdd(suite, "malloc", &testMalloc);
   testSuiteAdd(suite, "malloc zero", &testMallocZero);

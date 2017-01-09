@@ -3,7 +3,7 @@
 #include "unit/testDoc.h"
 #include "unit/testJson.h"
 #include "unit/testList.h"
-#include "unit/testMmalloc.h"
+#include "unit/testMemory.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -47,7 +47,7 @@ static void runTestSuites(TestSuite **suites, unsigned int numSuites) {
  */
 int main(int argc, char **argv) {
   TestSuite *suites[] = {
-    mmallocTestSuite(),
+    memoryTestSuite(),
     listTestSuite(),
     dictTestSuite(),
     jsonTestSuite(),
