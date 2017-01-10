@@ -68,7 +68,7 @@ static void testDocumentRemoveCollaborators(void) {
 
 
 TestSuite *documentTestSuite() {
-  TestSuite *suite = testSuiteCreate("Document and collaborators", &setup, &teardown);
+  TestSuite *suite = testSuiteCreate("documents and collaborators", &setup, &teardown);
   testSuiteAdd(suite, "doc get info", &testDocumentGetInfo);
   testSuiteAdd(suite, "collaborator get info", &testCollaboratorGetInfo);
   testSuiteAdd(suite, "add collaborators", &testDocumentAddCollaborators);

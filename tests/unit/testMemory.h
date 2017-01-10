@@ -1,9 +1,5 @@
-#ifndef __TEST_MMALLOC_H__
-#define __TEST_MMALLOC_H__
-
-/*
- * Test memory allocation.
- */
+#ifndef __TEST_MEMORY_H__
+#define __TEST_MEMORY_H__
 
 TestSuite *memoryTestSuite(void);
 

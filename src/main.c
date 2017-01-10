@@ -23,14 +23,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (client) {
-    /* Run the client application. */
+  if (client)
     clientStart(port);
-  } else {
-    /* Run the main server. */
-    RTServer *server = serverCreate();
-    serverSetPort(server, port);
-    serverSetVerbosity(server, !quiet);
-    serverStart(server);
-  }
+  else
+    serverStart(port, !quiet);
 }

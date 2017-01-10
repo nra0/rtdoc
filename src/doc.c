@@ -194,8 +194,6 @@ void documentRemoveCollaborator(Document *doc, char *userId) {
   Collaborator *user;
   int index;
 
-  if ((index = getCollaborator(doc->collaborators, userId, &user)) < 0)
-    return;
-
-  listRemove(doc->collaborators, index);
+  if ((index = getCollaborator(doc->collaborators, userId, &user)) >= 0)
+    listRemove(doc->collaborators, index);
 }

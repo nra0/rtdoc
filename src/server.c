@@ -22,49 +22,26 @@ typedef struct sockaddr_in SockAddr;
  *                              Struct declarations.
  *******************************************************************************/
 
-struct RTServer {
+typedef struct Server {
   unsigned int port;  /* The port the server listens to. */
   int fd;             /* The file descriptor of the server. */
   SockAddr *addr;     /* The address of the server. */
   bool verbose;       /* If set, the will output each request made to it. */
   Dict *documents;    /* The hashmap of keys to documents. */
-};
+} Server;
+
+Server *server;       /* Global server pointer. */
 
 /********************************************************************************
  *                               Server creation.
  *******************************************************************************/
 
 /*
- * Create a new server instance.
- *
- * @return A server instance, ready to be started.
- */
-RTServer *serverCreate(void) {
-  RTServer *server = mmalloc(sizeof(RTServer));
-  SockAddr *serverAddr = mcalloc(sizeof(SockAddr));
-  char buffer[BUFFER_SIZE];
-
-  server->fd = socket(AF_INET, SOCK_STREAM, 0);
-  server->addr = serverAddr;
-  server->verbose = false;
-
-  /* Networking setup. */
-  serverAddr->sin_family = AF_INET;
-  serverAddr->sin_addr.s_addr = htonl(INADDR_ANY);
-  serverAddr->sin_port = htons(server->port);
-
-  /* Key value store setup. */
-  server->documents = dictCreate(&documentFree);
-
-  return server;
-}
-
-/*
  * Free an existing server instance.
  *
  * @param server: The server to free.
  */
-void serverFree(RTServer *server) {
+void serverFree(void) {
   assert(server != NULL);
 
   mfree(server->addr);
@@ -72,34 +49,12 @@ void serverFree(RTServer *server) {
   mfree(server);
 }
 
-/*
- * Set the port that the server should listen to.
- *
- * @param server: The server to modify.
- * @param port: The port the server should listen to.
- */
-void serverSetPort(RTServer *server, unsigned int port) {
-  assert(server != NULL);
-  server->port = port;
-}
-
-/*
- * Set the verbosity output of the running server.
- *
- * @param server: The server to modify.
- * @param verbose: Whether the server should print all its outputs.
- */
-void serverSetVerbosity(RTServer *server, bool verbose) {
-  assert(server != NULL);
-  server->verbose = verbose;
-}
-
 
 /********************************************************************************
  *                            Modify the store.
  *******************************************************************************/
 
-static int serverAddDocument(RTServer *server, char *key, char *contents) {
+static int serverAddDocument(char *key, char *contents) {
  assert(server != NULL);
  assert(key != NULL);
  assert(contents != NULL);
@@ -119,7 +74,7 @@ static int serverAddDocument(RTServer *server, char *key, char *contents) {
  return 0;
 }
 
-static Document *serverGetDocument(RTServer *server, char *key) {
+static Document *serverGetDocument(char *key) {
   Document *doc;
 
   if ((doc = dictGet(server->documents, key)) == NULL)
@@ -128,47 +83,47 @@ static Document *serverGetDocument(RTServer *server, char *key) {
   return doc;
 }
 
-static char *serverGetDocumentContents(RTServer *server, char *key) {
+static char *serverGetDocumentContents(char *key) {
  assert(server != NULL);
  assert(key != NULL);
 
  Document *doc;
 
- if ((doc = serverGetDocument(server, key)) == NULL)
+ if ((doc = serverGetDocument(key)) == NULL)
   return NULL;
 
  return jsonStringify(documentGetContents(doc));
 }
 
-static int serverAddCollaborator(RTServer *server, char *key, char *userId) {
+static int serverAddCollaborator(char *key, char *userId) {
   assert(server != NULL);
   assert(key != NULL);
   assert(userId != NULL);
 
   Document *doc;
 
-  if ((doc = serverGetDocument(server, key)) == NULL)
+  if ((doc = serverGetDocument(key)) == NULL)
     return -1;
 
   documentAddCollaborator(doc, collaboratorCreate(userId));
   return 0;
 }
 
-static int serverRemoveCollaborator(RTServer *server, char *key, char *userId) {
+static int serverRemoveCollaborator(char *key, char *userId) {
   assert(server != NULL);
   assert(key != NULL);
   assert(userId != NULL);
 
   Document *doc;
 
-  if ((doc = serverGetDocument(server, key)) == NULL)
+  if ((doc = serverGetDocument(key)) == NULL)
     return -1;
 
   documentRemoveCollaborator(doc, userId);
   return 0;
 }
 
-static int serverModifyDocument(RTServer *server, char *key, char *userId, char *change) {
+static int serverModifyDocument(char *key, char *userId, char *change) {
   return 0;
 }
 
@@ -178,21 +133,48 @@ static int serverModifyDocument(RTServer *server, char *key, char *userId, char 
  *******************************************************************************/
 
 /*
-* Start an existing server.
+* Initialize and start the server.
 *
-* @param server: The server to start.
+* @param port: The port to run the server on.
+* @parm verbose: Whether to output activity to a log.
 */
-void serverStart(RTServer *server) {
- assert(server != NULL);
+void serverStart(unsigned int port, bool verbose) {
+  assert(server == NULL);
 
- int clientfd;
+  server = mmalloc(sizeof(Server));
 
- if (server->verbose)
-   printf("Starting RTDoc server on port %d\n", server->port);
+  /* Initialize socket. */
+  server->fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (server->fd < 0) {
+    fprintf(stderr, "Could not open socket connection.\n");
+    abort();
+  }
+  server->addr = mcalloc(sizeof(SockAddr));
+  server->addr->sin_family = AF_INET;
+  server->addr->sin_addr.s_addr = htonl(INADDR_ANY);
+  server->addr->sin_port = htons(server->port);
 
- listen(server->fd, BACKLOG_SIZE);
- while (true) {
-   clientfd = accept(server->fd, NULL, NULL);
-   write(clientfd, "hello there", strlen("hello there"));
- }
+  /* Other configurations. */
+  server->port = port;
+  server->verbose = verbose;
+
+  /* Key value store setup. */
+  server->documents = dictCreate(&documentFree);
+
+  int clientfd;
+
+  if (server->verbose)
+    printf("Starting RTDoc server on port %d\n", server->port);
+
+  /* Start accepting connections. */
+  if ((bind(server->fd, (struct sockaddr*) server->addr, sizeof(SockAddr))) < 0) {
+    fprintf(stderr, "Could not bind to socket.\n");
+    abort();
+  }
+
+  listen(server->fd, BACKLOG_SIZE);
+  while (true) {
+    clientfd = accept(server->fd, NULL, NULL);
+    write(clientfd, "hello there", strlen("hello there"));
+  }
 }

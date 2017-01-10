@@ -38,4 +38,3 @@ clean:
 	rm -rf $(BUILDDIR) $(TARGET) $(TTARGET)
 
 .PHONY: checkdir clean
-
