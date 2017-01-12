@@ -14,9 +14,9 @@ void dictFree(Dict *dict);
 
 /* Map methods. */
 unsigned int dictSize(const Dict *dict);
-Dict *dictSet(Dict *dict, char *key, void *value);
-Dict *dictRemove(Dict *dict, char *key);
-void *dictGet(const Dict *dict, char *key);
+Dict *dictSet(Dict *dict, const char *key, void *value);
+Dict *dictRemove(Dict *dict, const char *key);
+void *dictGet(const Dict *dict, const char *key);
 
 /* Map iteration. */
 DictIter *dictIter(Dict *dict);

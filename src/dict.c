@@ -57,7 +57,7 @@ typedef struct DictEntry {
  * @param value: the associated value.
  * @return A dictionary entry holding the key/value pair.
  */
- static DictEntry *dictEntryCreate(Dict *dict, char *key, void *value) {
+ static DictEntry *dictEntryCreate(Dict *dict, const char *key, void *value) {
    DictEntry *entry = mmalloc(sizeof(DictEntry));
    entry->key = mmalloc(sizeof(char*) * strlen(key));
    strcpy(entry->key, key);
@@ -132,7 +132,7 @@ unsigned int dictSize(const Dict *dict) {
  * @param key: The key to hash.
  * @return The hash of the key, which can be used to place it in a bucket.
  */
-static unsigned long hash(char *key) {
+static unsigned long hash(const char *key) {
   unsigned long hash = 5381;
   char c;
 
@@ -149,11 +149,11 @@ static unsigned long hash(char *key) {
  * @param key: The key to lookup.
  * @return The index of the corresponding bucket.
  */
-static unsigned int getBucket(const Dict *dict, char *key) {
+static unsigned int getBucket(const Dict *dict, const char *key) {
   return hash(key) % dict->numBuckets;
 }
 
-static int getDictEntry(List *list, char *key, DictEntry **entry) {
+static int getDictEntry(List *list, const char *key, DictEntry **entry) {
   int length = listLength(list);
 
   if (length == 0)
@@ -196,7 +196,7 @@ static int getDictEntry(List *list, char *key, DictEntry **entry) {
  * @param value: The value to insert.
  * @return The updated dictionary.
  */
-Dict *dictSet(Dict *dict, char *key, void *value) {
+Dict *dictSet(Dict *dict, const char *key, void *value) {
   assert(dict != NULL);
   assert(key != NULL);
 
@@ -219,7 +219,7 @@ Dict *dictSet(Dict *dict, char *key, void *value) {
  *
  * @return The dictionary without the key.
  */
-Dict *dictRemove(Dict *dict, char *key) {
+Dict *dictRemove(Dict *dict, const char *key) {
   assert(dict != NULL);
   assert(key != NULL);
 
@@ -245,7 +245,7 @@ Dict *dictRemove(Dict *dict, char *key) {
  * @param key: The key corresponding to the value.
  * @return The value at the key.
  */
-void *dictGet(const Dict *dict, char *key) {
+void *dictGet(const Dict *dict, const char *key) {
   assert(dict != NULL);
   assert(key != NULL);
 

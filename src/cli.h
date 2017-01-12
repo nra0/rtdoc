@@ -6,6 +6,6 @@
  * Database command line client.
  */
 
-void clientStart(unsigned int port);
+void clientStart(const char *host, unsigned int port);
 
 #endif
