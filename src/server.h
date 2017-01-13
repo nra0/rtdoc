@@ -15,8 +15,7 @@ typedef enum LogLevel {
   LOG_LEVEL_ERROR,
   LOG_LEVEL_WARNING,
   LOG_LEVEL_INFO,
-  LOG_LEVEL_DEBUG,
-  LOG_LEVEL_ALL
+  LOG_LEVEL_DEBUG
 } LogLevel;
 
 void serverStart(unsigned int port, LogLevel verbosity, FILE *logFile);

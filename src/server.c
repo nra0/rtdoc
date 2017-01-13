@@ -5,6 +5,8 @@
 
 #include <assert.h>
 #include <netinet/in.h>
+#include <signal.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +48,21 @@ Server *server;         /* Global server pointer. */
  *******************************************************************************/
 
 /*
+ * Log the message to the server's log file,
+ * if its level is above the server's verbosity level.
+ *
+ * @param message: The message to log.
+ * @param level: The debug level of the message.
+ */
+static void serverLog(LogLevel level, const char *message, ...) {
+ va_list args;
+ va_start(args, message);
+ if (server->verbosity >= level)
+   vfprintf(server->logFile, message, args);
+ va_end(args);
+}
+
+/*
  * Initialize the server.
  *
  * @param port: The port to run the server on.
@@ -61,8 +78,7 @@ static void serverCreate(unsigned int port, LogLevel verbosity, FILE *logFile) {
   server->logFile = logFile;
 
   /* Initialize socket. */
-  server->fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server->fd < 0) {
+  if ((server->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     fprintf(stderr, "Could not open socket connection.\n");
     abort();
   }
@@ -75,6 +91,15 @@ static void serverCreate(unsigned int port, LogLevel verbosity, FILE *logFile) {
 
   /* Key value store setup. */
   server->documents = dictCreate(&documentFree);
+
+  /* Start accepting connections. */
+  if ((bind(server->fd, (struct sockaddr*) server->addr, sizeof(SockAddr))) < 0) {
+    fprintf(stderr, "Could not bind to socket.\n");
+    abort();
+  }
+  listen(server->fd, BACKLOG_SIZE);
+
+  serverLog(LOG_LEVEL_INFO, "Starting RTDoc server on port %d\n", server->port);
 }
 
 /*
@@ -84,6 +109,7 @@ static void serverCreate(unsigned int port, LogLevel verbosity, FILE *logFile) {
  */
 static void serverFree(void) {
   assert(server != NULL);
+  close(server->fd);
   mfree(server->addr);
   dictFree(server->documents);
   mfree(server);
@@ -91,26 +117,12 @@ static void serverFree(void) {
 
 
 /********************************************************************************
- *                            Utility functions.
- *******************************************************************************/
-
-/*
- * Log the message to the server's log file,
- * if its level is above the server's verbosity level.
- *
- * @param message: The message to log.
- * @param level: The debug level of the message.
- */
-static void serverLog(const char *message, unsigned int level) {
-
-}
-
-/********************************************************************************
  *                            Store actions.
  *******************************************************************************/
 
 #define OK  "ok"
 #define NIL "nil"
+
 
 /*
  * Simple ping to the server.
@@ -246,6 +258,15 @@ Command commandTable[] = {
 };
 
 /*
+ * Interrupt handler that cleans up the open connections before exiting the program.
+ */
+ static void interruptHandler(int signal) {
+   assert(server != NULL);
+   serverFree();
+   exit(0);
+ }
+
+/*
  * Initialize and start the server.
  *
  * @param port: The port to run the server on.
@@ -256,22 +277,27 @@ void serverStart(unsigned int port, LogLevel verbosity, FILE *logFile) {
   assert(server == NULL);
   serverCreate(port, verbosity, logFile);
 
-  /* Start accepting connections. */
-  if ((bind(server->fd, (struct sockaddr*) server->addr, sizeof(SockAddr))) < 0) {
-    fprintf(stderr, "Could not bind to socket.\n");
-    abort();
-  }
+  int clientfd, bytesTransferred;
+  char buffer[BUFFER_SIZE];
 
-  int clientfd;
+  /* Catch interrupts for cleanup. */
+  signal(SIGINT, interruptHandler);
 
-  if (server->verbosity > LOG_LEVEL_OFF)
-    fprintf(server->logFile, "Starting RTDoc server on port %d\n", server->port);
-
-  listen(server->fd, BACKLOG_SIZE);
-
+  /* Accept requests in a loop. */
   while (true) {
-    clientfd = accept(server->fd, NULL, NULL);
-    printf("got a client!\n");
-    write(clientfd, "hello there", strlen("hello there"));
+    if ((clientfd = accept(server->fd, NULL, NULL)) < 0) {
+      fprintf(stderr, "Error accepting client.\n");
+      continue;
+    }
+    while ((bytesTransferred = read(clientfd, buffer, sizeof(buffer))) > 0) {
+      printf("Reading %d: %s", bytesTransferred, buffer);
+      if ((bytesTransferred = write(clientfd, buffer, strlen(buffer))) < 0) {
+        fprintf(stderr, "Client disconnected.\n");
+        break;
+      }
+      memset(buffer, 0, sizeof(buffer));
+    }
   }
+
+  serverFree();
 }

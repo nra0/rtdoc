@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
   int port = SERVER_DEFAULT_PORT;
   FILE *logFile = stdout;
   char host[64] = "localhost";
-  LogLevel verbosity = LOG_LEVEL_ERROR;
+  LogLevel verbosity = LOG_LEVEL_INFO;
   char opt;
 
   while ((opt = getopt(argc, argv, "cdh:l:p:")) != -1) {
