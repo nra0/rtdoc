@@ -31,11 +31,11 @@ typedef struct Server {
 
 typedef struct Client {
   pid_t pid;            /* The process id of the client */
-  Server *server;       /* The server the client is connected to. */
+  Server server;        /* The server the client is connected to. */
   int fd;               /* The client file descriptor. */
 } Client;
 
-Client *client;         /* Global client struct. */
+Client client;         /* Global client struct. */
 
 
 /********************************************************************************
@@ -49,55 +49,50 @@ Client *client;         /* Global client struct. */
  * @param port: The port of the server to listen to.
  */
 static void clientCreate(const char *hostName, unsigned int port) {
-  client = mmalloc(sizeof(Client));
-  client->pid = getpid();
-  client->server = mmalloc(sizeof(Server));
+  client.pid = getpid();
 
   /* Host and port numbers. */
-  client->server->hostName = mmalloc(strlen(hostName) + 1);
-  strcpy(client->server->hostName, hostName);
-  client->server->port = port;
+  client.server.hostName = mmalloc(strlen(hostName) + 1);
+  strcpy(client.server.hostName, hostName);
+  client.server.port = port;
 
   /* Socket connection. */
-  if ((client->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+  if ((client.fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     fprintf(stderr, "Could not open socket.\n");
     abort();
   }
 
   /* Get the host. */
-  if ((client->server->host = gethostbyname(client->server->hostName)) == NULL) {
-    fprintf(stderr, "Could not connect to host %s\n", client->server->hostName);
+  if ((client.server.host = gethostbyname(client.server.hostName)) == NULL) {
+    fprintf(stderr, "Could not connect to host %s\n", client.server.hostName);
     abort();
   }
 
   /* Network configuration. */
-  client->server->addr = mcalloc(sizeof(SockAddr));
-  client->server->addr->sin_family = AF_INET;
-  bcopy((char*) client->server->host->h_addr,
-        (char*) &client->server->addr->sin_addr.s_addr,
-        client->server->host->h_length);
-  client->server->addr->sin_port = htons(client->server->port);
+  client.server.addr = mcalloc(sizeof(SockAddr));
+  client.server.addr->sin_family = AF_INET;
+  bcopy((char*) client.server.host->h_addr,
+        (char*) &client.server.addr->sin_addr.s_addr,
+        client.server.host->h_length);
+  client.server.addr->sin_port = htons(client.server.port);
 
   /* Connect to the server. */
-  if (connect(client->fd, (struct sockaddr*) client->server->addr, sizeof(SockAddr)) < 0) {
+  if (connect(client.fd, (struct sockaddr*) client.server.addr, sizeof(SockAddr)) < 0) {
     fprintf(stderr, "Could not connect to server.\n");
     abort();
   }
 
   printf("Starting RTDoc client.\nConnected to %s on port %d.\n",
-          client->server->hostName, client->server->port);
+          client.server.hostName, client.server.port);
 }
 
 /*
  * Free the client.
  */
 static void clientFree(void) {
-  assert(client != NULL);
-  close(client->fd);
-  mfree(client->server->host);
-  mfree(client->server->addr);
-  mfree(client->server);
-  mfree(client);
+  close(client.fd);
+  mfree(client.server.host);
+  mfree(client.server.addr);
 }
 
 
@@ -112,7 +107,6 @@ static void clientFree(void) {
  * Called when the client disonnects from the server.
  */
 static void clientDisconnected(void) {
-  assert(client != NULL);
   fprintf(stderr, "Disconnected from server!\n");
   abort();
 }
@@ -124,10 +118,9 @@ static void clientDisconnected(void) {
  * @return The number of bytes received.
  */
 static int clientRead(char *buffer) {
-  assert(client != NULL);
   assert(buffer != NULL);
   memset(buffer, 0, BUFFER_SIZE);
-  return read(client->fd, buffer, BUFFER_SIZE);
+  return read(client.fd, buffer, BUFFER_SIZE);
 }
 
 /*
@@ -137,9 +130,8 @@ static int clientRead(char *buffer) {
  * @return The number of bytes sent.
  */
 static int clientWrite(char *message) {
-  assert(client != NULL);
   assert(message != NULL);
-  return write(client->fd, message, strlen(message));
+  return write(client.fd, message, strlen(message));
 }
 
 /*
@@ -149,13 +141,11 @@ static int clientWrite(char *message) {
  * @param port: The port the server is running on.
  */
 void clientStart(const char *host, unsigned int port) {
-  assert(client == NULL);
   assert(host != NULL);
 
   clientCreate(host, port);
 
   char buffer[BUFFER_SIZE];
-  memset(buffer, 0, sizeof(buffer));
 
   while (true) {
     printf(CLI_PROMPT);

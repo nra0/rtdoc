@@ -13,6 +13,7 @@
 
 
 int main(int argc, char **argv) {
+  /* Default settings. */
   bool client;
   int port = SERVER_DEFAULT_PORT,
       maxClients = SERVER_MAX_CLIENTS;
@@ -21,6 +22,7 @@ int main(int argc, char **argv) {
   LogLevel verbosity = LOG_LEVEL_INFO;
   char opt;
 
+  /* Custom command line options. */
   while ((opt = getopt(argc, argv, "cdh:l:n:p:")) != -1) {
     switch (opt) {
       case 'c': client = true; break;
@@ -32,6 +34,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  /* Run the program. */
   if (client)
     clientStart(host, port);
   else

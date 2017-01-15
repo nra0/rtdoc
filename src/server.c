@@ -44,7 +44,7 @@ typedef struct Server {
   unsigned int port;                          /* The port the server listens to. */
   int fd;                                     /* The file descriptor of the server. */
   SockAddr *addr;                             /* The address of the server. */
-  LogLevel verbosity;                         /* If set, the will output each request made to it. */
+  LogLevel verbosity;                         /* How verbose the logging should be. */
   FILE *logFile;                              /* The file descriptor to log activity to. */
   char *logFileName;                          /* The name of the log file. */
   unsigned int maxClients;                    /* The maximum number of clients the server can handle concurrently. */
@@ -58,7 +58,7 @@ typedef struct Command {
   char *(*fn)(char *a1, char *a2, char *a3);  /* The function that implements the command. */
 } Command;
 
-Server *server;                               /* Global server pointer. */
+Server server;                               /* Global server pointer. */
 
 
 /********************************************************************************
@@ -102,19 +102,18 @@ static Client *clientCopy(Client *client) {
  * Initialize the server's work queue.
  */
 static void workQueueCreate(void) {
-  assert(server != NULL);
-  server->workQueue = mmalloc(sizeof(WorkQueue));
-  server->workQueue->clients = listCreate(LIST_TYPE_LINKED, &clientFree);
+  assert(server.workQueue == NULL);
+  server.workQueue = mmalloc(sizeof(WorkQueue));
+  server.workQueue->clients = listCreate(LIST_TYPE_LINKED, &clientFree);
 }
 
 /*
  * Free the server's work queue.
  */
 static void workQueueFree(void) {
-  assert(server != NULL);
-  assert(server->workQueue != NULL);
-  listFree(server->workQueue->clients);
-  mfree(server->workQueue);
+  assert(server.workQueue != NULL);
+  listFree(server.workQueue->clients);
+  mfree(server.workQueue);
 }
 
 /*
@@ -123,10 +122,9 @@ static void workQueueFree(void) {
  * @param client: The client to add.
  */
 static void workQueuePush(Client *client) {
-  assert(server != NULL);
-  assert(server->workQueue != NULL);
+  assert(server.workQueue != NULL);
 
-  WorkQueue *queue = server->workQueue;
+  WorkQueue *queue = server.workQueue;
   pthread_mutex_lock(&queue->mutex);
 
   listAppend(queue->clients, client);
@@ -140,10 +138,9 @@ static void workQueuePush(Client *client) {
  * @return The next client from the queue.
  */
 static Client *workQueuePop(void) {
-  assert(server != NULL);
-  assert(server->workQueue != NULL);
+  assert(server.workQueue != NULL);
 
-  WorkQueue *queue = server->workQueue;
+  WorkQueue *queue = server.workQueue;
   pthread_mutex_lock(&queue->mutex);
 
   while (listLength(queue->clients) == 0)
@@ -173,8 +170,8 @@ static Client *workQueuePop(void) {
 static void serverLog(LogLevel level, const char *message, ...) {
   va_list args;
   va_start(args, message);
-  if (server->verbosity >= level)
-    vfprintf(server->logFile, message, args);
+  if (server.verbosity >= level)
+    vfprintf(server.logFile, message, args);
   va_end(args);
 }
 
@@ -218,52 +215,51 @@ static char *jump(char *string) {
  * @param maxClients: The maximum concurrent clients to handle.
  */
 static void serverCreate(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients) {
-  server = mmalloc(sizeof(Server));
-
   /* Passed in properties. */
-  server->pid = getpid();
-  server->port = port;
-  server->verbosity = verbosity;
+  server.pid = getpid();
+  server.port = port;
+  server.verbosity = verbosity;
   if (strlen(logFile)) {
-    server->logFileName = mmalloc(strlen(logFile) + 1);
-    strcpy(server->logFileName, logFile);
-    server->logFile = fopen(logFile, "a");
+    server.logFileName = mmalloc(strlen(logFile) + 1);
+    strcpy(server.logFileName, logFile);
+    server.logFile = fopen(logFile, "a");
   } else {
-    server->logFileName = mmalloc(7);
-    strcpy(server->logFileName, "stdout");
-    server->logFile = stdout;
+    server.logFileName = mmalloc(7);
+    strcpy(server.logFileName, "stdout");
+    server.logFile = stdout;
   }
-  server->maxClients =  maxClients;
+  server.maxClients =  maxClients;
 
   /* Initialize socket. */
-  if ((server->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+  if ((server.fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     fprintf(stderr, "Could not open socket connection.\n");
     abort();
   }
 
   /* Network configuration. */
-  server->addr = mcalloc(sizeof(SockAddr));
-  server->addr->sin_family = AF_INET;
-  server->addr->sin_addr.s_addr = htonl(INADDR_ANY);
-  server->addr->sin_port = htons(server->port);
+  server.addr = mcalloc(sizeof(SockAddr));
+  server.addr->sin_family = AF_INET;
+  server.addr->sin_addr.s_addr = htonl(INADDR_ANY);
+  server.addr->sin_port = htons(server.port);
 
   /* Key value store setup. */
-  server->documents = dictCreate(&documentFree);
+  server.documents = dictCreate(&documentFree);
 
   /* Work queue. */
   workQueueCreate();
 
   /* Start accepting connections. */
-  if ((bind(server->fd, (struct sockaddr*) server->addr, sizeof(SockAddr))) < 0) {
+  if ((bind(server.fd, (struct sockaddr*) server.addr, sizeof(SockAddr))) < 0) {
     fprintf(stderr, "Could not bind to socket.\n");
     abort();
   }
-  listen(server->fd, server->maxClients);
+  listen(server.fd, server.maxClients);
 
-  serverLog(LOG_LEVEL_INFO, "Starting RTDoc server on port %d\n", server->port);
+  serverLog(LOG_LEVEL_INFO, "Starting RTDoc server on port %d\n", server.port);
   serverLog(LOG_LEVEL_DEBUG, "Debug mode on\n");
-  serverLog(LOG_LEVEL_DEBUG, "Logging to %s\n", server->logFileName);
-  serverLog(LOG_LEVEL_DEBUG, "Maximum clients: %d\n", server->maxClients);
+  serverLog(LOG_LEVEL_DEBUG, "PID: %d\n", server.pid);
+  serverLog(LOG_LEVEL_DEBUG, "Logging to %s\n", server.logFileName);
+  serverLog(LOG_LEVEL_DEBUG, "Maximum clients: %d\n", server.maxClients);
 }
 
 /*
@@ -272,12 +268,11 @@ static void serverCreate(unsigned int port, LogLevel verbosity, char *logFile, u
  * @param server: The server to free.
  */
 static void serverFree(void) {
-  assert(server != NULL);
-  close(server->fd);
-  mfree(server->addr);
-  dictFree(server->documents);
+  close(server.fd);
+  mfree(server.addr);
+  mfree(server.logFileName);
+  dictFree(server.documents);
   workQueueFree();
-  mfree(server);
 }
 
 
@@ -342,7 +337,7 @@ static char *serverAddDocument(char *key, char *contents, char *unused) {
   }
 
   Document *doc = documentCreate(key, json);
-  dictSet(server->documents, key, doc);
+  dictSet(server.documents, key, doc);
 
   return OK;
 }
@@ -356,7 +351,7 @@ static char *serverAddDocument(char *key, char *contents, char *unused) {
 static Document *serverGetDocument(char *key) {
   Document *doc;
 
-  if ((doc = dictGet(server->documents, key)) == NULL)
+  if ((doc = dictGet(server.documents, key)) == NULL)
     return NULL;
 
   return doc;
@@ -383,7 +378,7 @@ static char *serverGetDocumentContents(char *key, char *unused1, char *unused2) 
 static char *serverRemoveDocument(char *key, char *unused1, char *unused2) {
   assert(key != NULL);
   UNUSED(unused1); UNUSED(unused2);
-  dictRemove(server->documents, key);
+  dictRemove(server.documents, key);
   return OK;
 }
 
@@ -455,7 +450,6 @@ Command commandTable[] = {
  * Interrupt handler that cleans up the open connections before exiting the program.
  */
 static void interruptHandler(int signal) {
-  assert(server != NULL);
   serverFree();
   exit(0);
 }
@@ -468,7 +462,6 @@ static void interruptHandler(int signal) {
  * @return The number of bytes read.
  */
 static int serverRead(int fd, char *buffer) {
-  assert(server != NULL);
   assert(buffer != NULL);
   memset(buffer, 0, BUFFER_SIZE);
   return read(fd, buffer, BUFFER_SIZE);
@@ -482,7 +475,6 @@ static int serverRead(int fd, char *buffer) {
  * @return The number of bytes written.
  */
 static int serverWrite(int fd, char *message) {
-  assert(server != NULL);
   assert(message != NULL);
   return write(fd, message, strlen(message));
 }
@@ -564,10 +556,10 @@ static void handleClientRequest(Client *client) {
   while (serverRead(client->fd, buffer) > 0) {
     serverLog(LOG_LEVEL_DEBUG, buffer);
     output = runCommand(skip(buffer));
-    if (serverWrite(client->fd, output) < 0) {
-      serverLog(LOG_LEVEL_INFO, "Client disconnected.\n");
+    if (serverWrite(client->fd, output) <= 0) {
+      serverLog(LOG_LEVEL_INFO, "Client disconnected: %d.\n", client->fd);
       mfree(output);
-      mfree(client);
+      clientFree(client);
       break;
     }
     mfree(output);
@@ -595,27 +587,25 @@ static void *serverThreadJob(void *unused) {
  * @param maxClients: The maximum concurrent clients.
  */
 void serverStart(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients) {
-  assert(server == NULL);
   serverCreate(port, verbosity, logFile, maxClients);
 
   int clientfd;
 
   /* Create threading system. */
-  pthread_t threads[server->maxClients];
-  for (int i = 0; i < server->maxClients; i++)
+  pthread_t threads[server.maxClients];
+  for (int i = 0; i < server.maxClients; i++)
     pthread_create(&threads[i], NULL, serverThreadJob, NULL);
-
 
   /* Catch interrupts for cleanup. */
   signal(SIGINT, interruptHandler);
 
   /* Accept requests in a loop. */
   while (true) {
-    if ((clientfd = accept(server->fd, NULL, NULL)) < 0) {
+    if ((clientfd = accept(server.fd, NULL, NULL)) < 0) {
       serverLog(LOG_LEVEL_ERROR, "Error accepting client.\n");
       continue;
     }
-    serverLog(LOG_LEVEL_DEBUG, "Connected %d\n", clientfd);
+    serverLog(LOG_LEVEL_DEBUG, "Client connected: %d\n", clientfd);
     workQueuePush(clientCreate(clientfd));
   }
 
