@@ -12,7 +12,7 @@
 #include <unistd.h>
 
 
-#define BUFFER_SIZE 4095
+#define BUFFER_SIZE 4096
 
 typedef struct sockaddr_in SockAddr;
 typedef struct hostent Host;
@@ -102,20 +102,45 @@ static void clientFree(void) {
 
 
 /********************************************************************************
- *              Interface for the user to interact with the server.
- *******************************************************************************/
-
-/*
- * Ping the client's server.
- */
-static void clientPing(void) {
-  assert(client != NULL);
-}
-
-
-/********************************************************************************
  *                             Launch the client.
  *******************************************************************************/
+
+#define CLI_PROMPT    "rtdoc> "
+
+
+/*
+ * Called when the client disonnects from the server.
+ */
+static void clientDisconnected(void) {
+  assert(client != NULL);
+  fprintf(stderr, "Disconnected from server!\n");
+  abort();
+}
+
+/*
+ * Read a message from the server.
+ *
+ * @param buffer: The buffer to write the message to.
+ * @return The number of bytes received.
+ */
+static int clientRead(char *buffer) {
+  assert(client != NULL);
+  assert(buffer != NULL);
+  memset(buffer, 0, BUFFER_SIZE);
+  return read(client->fd, buffer, BUFFER_SIZE);
+}
+
+/*
+ * Write a message to the server and clear the buffer.
+ *
+ * @param message: The message to send.
+ * @return The number of bytes sent.
+ */
+static int clientWrite(char *message) {
+  assert(client != NULL);
+  assert(message != NULL);
+  return write(client->fd, message, strlen(message));
+}
 
 /*
  * Client main method.
@@ -129,20 +154,14 @@ void clientStart(const char *host, unsigned int port) {
 
   clientCreate(host, port);
 
-  int bytesTransferred;
   char buffer[BUFFER_SIZE];
+  memset(buffer, 0, sizeof(buffer));
 
   while (true) {
-    printf("rtdoc> ");
+    printf(CLI_PROMPT);
     fgets(buffer, sizeof(buffer), stdin);
-    if ((bytesTransferred = write(client->fd, buffer, strlen(buffer))) < 0) {
-      fprintf(stderr, "Disconnected from server!\n");
-      abort();
-    }
-    if ((bytesTransferred = read(client->fd, buffer, sizeof(buffer))) < 0) {
-      fprintf(stderr, "Disconnected from server!\n");
-      abort();
-    }
+    if (clientWrite(buffer) < 0 || clientRead(buffer) < 0)
+      clientDisconnected();
     printf("%s", buffer);
   }
 

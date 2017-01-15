@@ -28,8 +28,11 @@ $(TARGET): $(OBJ) $(MOBJ)
 check: CFLAGS += $(DFLAGS)
 check: checkdir $(TTARGET)
 
+debug: CFLAGS += $(DFLAGS)
+debug: checkdir $(TARGET)
+
 $(TTARGET): $(OBJ) $(TOBJ)
-	$(CC) $(CFLAGS) $(DFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 checkdir:
 	mkdir -p $(BUILDDIR)
