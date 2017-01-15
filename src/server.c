@@ -18,7 +18,6 @@
 
 
 #define BUFFER_SIZE         4096
-#define MAX_CLIENTS         8
 #define UNUSED(x)           (void)(x)
 
 typedef struct sockaddr_in  SockAddr;
@@ -47,6 +46,8 @@ typedef struct Server {
   SockAddr *addr;                             /* The address of the server. */
   LogLevel verbosity;                         /* If set, the will output each request made to it. */
   FILE *logFile;                              /* The file descriptor to log activity to. */
+  char *logFileName;                          /* The name of the log file. */
+  unsigned int maxClients;                    /* The maximum number of clients the server can handle concurrently. */
   Dict *documents;                            /* The hashmap of keys to documents. */
   WorkQueue *workQueue;                       /* The list of workers waiting to be run. */
 } Server;
@@ -157,38 +158,82 @@ static Client *workQueuePop(void) {
 
 
 /********************************************************************************
- *                               Server creation.
+ *                              Utility functions.
  *******************************************************************************/
 
-/*
- * Log the message to the server's log file,
- * if its level is above the server's verbosity level.
- *
- * @param level: The debug level of the message.
- * @param message: The message to log.
- */
+#define WS_LIMIT   ' '
+
+ /*
+  * Log the message to the server's log file,
+  * if its level is above the server's verbosity level.
+  *
+  * @param level: The debug level of the message.
+  * @param message: The message to log.
+  */
 static void serverLog(LogLevel level, const char *message, ...) {
- va_list args;
- va_start(args, message);
- if (server->verbosity >= level)
-   vfprintf(server->logFile, message, args);
- va_end(args);
+  va_list args;
+  va_start(args, message);
+  if (server->verbosity >= level)
+    vfprintf(server->logFile, message, args);
+  va_end(args);
 }
+
+/*
+ * Skip past the whitespace in a string.
+ *
+ * @param string: The string to scan.
+ * @return The pointer past all the white space.
+ */
+static char *skip(char *string) {
+  assert(string != NULL);
+  while (*string <= WS_LIMIT && *string != '\0')
+    string++;
+  return string;
+}
+
+/*
+ * Jump to the end of the word.
+ *
+ * @param string: The string to jump.
+ * @return The pointer past the word.
+ */
+static char *jump(char *string) {
+  assert(string != NULL);
+  while (*string > WS_LIMIT)
+    string++;
+  return string;
+}
+
+
+/********************************************************************************
+ *                               Server creation.
+ *******************************************************************************/
 
 /*
  * Initialize the server.
  *
  * @param port: The port to run the server on.
  * @param verbosity: The amount of output to the log file.
+ * @param logFile: The name of the file to log to (empty for stdout).
+ * @param maxClients: The maximum concurrent clients to handle.
  */
-static void serverCreate(unsigned int port, LogLevel verbosity, FILE *logFile) {
+static void serverCreate(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients) {
   server = mmalloc(sizeof(Server));
 
   /* Passed in properties. */
   server->pid = getpid();
   server->port = port;
   server->verbosity = verbosity;
-  server->logFile = logFile;
+  if (strlen(logFile)) {
+    server->logFileName = mmalloc(strlen(logFile) + 1);
+    strcpy(server->logFileName, logFile);
+    server->logFile = fopen(logFile, "a");
+  } else {
+    server->logFileName = mmalloc(7);
+    strcpy(server->logFileName, "stdout");
+    server->logFile = stdout;
+  }
+  server->maxClients =  maxClients;
 
   /* Initialize socket. */
   if ((server->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -213,10 +258,12 @@ static void serverCreate(unsigned int port, LogLevel verbosity, FILE *logFile) {
     fprintf(stderr, "Could not bind to socket.\n");
     abort();
   }
-  listen(server->fd, MAX_CLIENTS);
+  listen(server->fd, server->maxClients);
 
   serverLog(LOG_LEVEL_INFO, "Starting RTDoc server on port %d\n", server->port);
   serverLog(LOG_LEVEL_DEBUG, "Debug mode on\n");
+  serverLog(LOG_LEVEL_DEBUG, "Logging to %s\n", server->logFileName);
+  serverLog(LOG_LEVEL_DEBUG, "Maximum clients: %d\n", server->maxClients);
 }
 
 /*
@@ -238,7 +285,6 @@ static void serverFree(void) {
  *                            Store actions.
  *******************************************************************************/
 
-#define CHAR_LIMIT  ' '
 #define OK          "ok"
 #define NIL         "nil"
 
@@ -253,13 +299,11 @@ static char *serverInvalidCommand(char *command, char *unused1, char *unused2) {
   assert(command != NULL);
   UNUSED(unused1); UNUSED(unused2);
 
-  int i = 0;
-  while (command[i] > CHAR_LIMIT)
-    i++;
+  int commandLength = jump(command) - command;
 
-  char *output = mmalloc(20 + i);
+  char *output = mmalloc(17 + commandLength);
   sprintf(output, "Invalid command ");
-  strncat(output, command, i);
+  strncat(output, command, commandLength);
   strcat(output, "\n");
   return output;
 }
@@ -444,6 +488,41 @@ static int serverWrite(int fd, char *message) {
 }
 
 /*
+ * Parse the arguments from a command.
+ *
+ * @param command: The command string to parse.
+ * @param argc: The number of arguments to parse.
+ * @param argv: The array of arguments to fill.
+ */
+static void parseArgs(char *command, int argc, char **argv) {
+  assert(command != NULL);
+
+  int argLength;
+
+  for (int i = 0; i < argc; i++) {
+    command = skip(command);
+    if (i == argc - 1)
+      argLength = strlen(command);
+    else
+      argLength = jump(command) - command;
+    argv[i] = mmalloc(argLength + 1);
+    strncpy(argv[i], command, argLength);
+    command = jump(command);
+  }
+}
+
+/*
+ * Free up to i arguments in the array.
+ *
+ * @param argv: The array of arguments.
+ * @param i: The number of args to free.
+ */
+static void freeArgs(char **argv, int i) {
+  for (int j = 0; j < i; j++)
+    mfree(argv[j]);
+}
+
+/*
  * Run a command.
  *
  * @param command: The command along with its arguments.
@@ -452,12 +531,20 @@ static int serverWrite(int fd, char *message) {
 static char *runCommand(char *command) {
   assert(command != NULL);
 
+  int length;
+  char *output;
   Command comm;
+
   for (int i = 0; i < NUM_COMMANDS; i++) {
     comm = commandTable[i];
-    if (!strncmp(command, comm.name, strlen(comm.name))) {
-      if (comm.argc == 0)
-        return comm.fn(NULL, NULL, NULL);
+    length = strlen(comm.name);
+    if (!strncmp(command, comm.name, length)) {
+      char *argv[3];
+      memset(argv, 0, sizeof(argv));
+      parseArgs(command + length, comm.argc, argv);
+      output = comm.fn(argv[0], argv[1], argv[2]);
+      freeArgs(argv, comm.argc);
+      return output;
     }
   }
   return serverInvalidCommand(command, NULL, NULL);
@@ -476,7 +563,7 @@ static void handleClientRequest(Client *client) {
   /* Accept requests in a loop. */
   while (serverRead(client->fd, buffer) > 0) {
     serverLog(LOG_LEVEL_DEBUG, buffer);
-    output = runCommand(buffer);
+    output = runCommand(skip(buffer));
     if (serverWrite(client->fd, output) < 0) {
       serverLog(LOG_LEVEL_INFO, "Client disconnected.\n");
       mfree(output);
@@ -505,17 +592,19 @@ static void *serverThreadJob(void *unused) {
  * @param port: The port to run the server on.
  * @param verbosity: The level of output to the log.
  * @param logFile: The file descriptor to output activity to.
+ * @param maxClients: The maximum concurrent clients.
  */
-void serverStart(unsigned int port, LogLevel verbosity, FILE *logFile) {
+void serverStart(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients) {
   assert(server == NULL);
-  serverCreate(port, verbosity, logFile);
+  serverCreate(port, verbosity, logFile, maxClients);
 
   int clientfd;
 
   /* Create threading system. */
-  pthread_t threads[MAX_CLIENTS];
-  for (int i = 0; i < MAX_CLIENTS; i++)
-    if (pthread_create(&threads[i], NULL, serverThreadJob, NULL))
+  pthread_t threads[server->maxClients];
+  for (int i = 0; i < server->maxClients; i++)
+    pthread_create(&threads[i], NULL, serverThreadJob, NULL);
+
 
   /* Catch interrupts for cleanup. */
   signal(SIGINT, interruptHandler);

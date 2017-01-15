@@ -18,6 +18,6 @@ typedef enum LogLevel {
   LOG_LEVEL_DEBUG
 } LogLevel;
 
-void serverStart(unsigned int port, LogLevel verbosity, FILE *logFile);
+void serverStart(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients);
 
 #endif
