@@ -1,6 +1,7 @@
 #include "../lib.h"
 #include "testServer.h"
 #include "../../src/server.h"
+#include "../../src/mmalloc.h"
 
 
 static void teardown(void) {

@@ -1,6 +1,7 @@
 #include "../lib.h"
 #include "testOt.h"
 #include "../../src/ot.h"
+#include "../../src/mmalloc.h"
 
 
 static void teardown(void) {
