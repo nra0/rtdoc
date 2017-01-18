@@ -4,6 +4,8 @@
 #include "unit/testJson.h"
 #include "unit/testList.h"
 #include "unit/testMemory.h"
+#include "unit/testOt.h"
+#include "unit/testServer.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -51,7 +53,9 @@ int main(int argc, char **argv) {
     listTestSuite(),
     dictTestSuite(),
     jsonTestSuite(),
-    documentTestSuite()
+    documentTestSuite(),
+    otTestSuite(),
+    serverTestSuite()
   };
 
   if (argc > 1)

@@ -17,12 +17,18 @@
 #include <unistd.h>
 
 
-#define BUFFER_SIZE         4096
-#define UNUSED(x)           (void)(x)
+#define BUFFER_SIZE             4096
+#define UNUSED(x)               (void)(x)
+#define threadCreate(w,x,y,z)   (pthread_create(w,x,y,z))
+#define mutexLock(x)            (pthread_mutex_lock(x))
+#define mutexUnlock(x)          (pthread_mutex_unlock(x))
+#define condWait(x,y)           (pthread_cond_wait(x,y))
+#define condSignal(x)           (pthread_cond_signal(x))
 
-typedef struct sockaddr_in  SockAddr;
-typedef pthread_mutex_t     Mutex;
-typedef pthread_cond_t      CondVar;
+typedef struct sockaddr_in      SockAddr;
+typedef pthread_t               Thread;
+typedef pthread_mutex_t         Mutex;
+typedef pthread_cond_t          CondVar;
 
 
 /********************************************************************************
@@ -125,11 +131,11 @@ static void workQueuePush(Client *client) {
   assert(server.workQueue != NULL);
 
   WorkQueue *queue = server.workQueue;
-  pthread_mutex_lock(&queue->mutex);
+  mutexLock(&queue->mutex);
 
   listAppend(queue->clients, client);
-  pthread_cond_signal(&queue->cv);
-  pthread_mutex_unlock(&queue->mutex);
+  condSignal(&queue->cv);
+  mutexUnlock(&queue->mutex);
 }
 
 /*
@@ -141,14 +147,14 @@ static Client *workQueuePop(void) {
   assert(server.workQueue != NULL);
 
   WorkQueue *queue = server.workQueue;
-  pthread_mutex_lock(&queue->mutex);
+  mutexLock(&queue->mutex);
 
   while (listLength(queue->clients) == 0)
-    pthread_cond_wait(&queue->cv, &queue->mutex);
+    condWait(&queue->cv, &queue->mutex);
 
   Client *client = clientCopy(listGet(queue->clients, 0));
   listRemove(queue->clients, 0);
-  pthread_mutex_unlock(&queue->mutex);
+  mutexUnlock(&queue->mutex);
 
   return client;
 }
@@ -277,12 +283,39 @@ static void serverFree(void) {
 
 
 /********************************************************************************
- *                            Store actions.
+ *                           Server information commands.
  *******************************************************************************/
 
-#define OK          "ok"
-#define NIL         "nil"
+#define OK          "ok\n"
+#define NIL         "nil\n"
 
+
+/*
+ * @return The success string.
+ */
+static char *ok(void) {
+  char *output = mmalloc(4);
+  strcpy(output, OK);
+  return output;
+}
+
+/*
+ * @return The null object string represntation.
+ */
+static char *nil(void) {
+  char *output = mmalloc(5);
+  strcpy(output, NIL);
+  return output;
+}
+
+/*
+ * @return A message that the function is not yet implemented
+ */
+static char *notImplemented(void) {
+  char *output = mmalloc(17);
+  strcpy(output, "not implemented\n");
+  return output;
+}
 
 /*
  * Called on an invalid command to the server.
@@ -316,6 +349,79 @@ static char *serverPing(char *unused1, char *unused2, char *unused3) {
 }
 
 /*
+ * Save the current server data to disk.
+ *
+ * @return The status of the operation.
+ */
+static char *serverSave(char *unused1, char *unused2, char *unused3) {
+  UNUSED(unused1); UNUSED(unused2); UNUSED(unused3);
+  return notImplemented();
+}
+
+/*
+ * @return The number of documents stored in the databse.
+ */
+static char *serverNumDocuments(char *unused1, char *unused2, char *unused3) {
+  UNUSED(unused1); UNUSED(unused2); UNUSED(unused3);
+  return notImplemented();
+}
+
+
+/********************************************************************************
+ *                   Information about database commands.
+ *******************************************************************************/
+
+/*
+ * @return The list of commands supported by the server.
+ */
+static char *serverGetCommands(char *unused1, char *unused2, char *unused3) {
+  UNUSED(unused1); UNUSED(unused2); UNUSED(unused3);
+  return notImplemented();
+}
+
+
+/********************************************************************************
+ *                     Modify connected client instances.
+ *******************************************************************************/
+
+/*
+ * Get the list of connected clients.
+ *
+ * @return The list of clients.
+ */
+static char *serverClientList(char *unused1, char *unused2, char *unused3) {
+  UNUSED(unused1); UNUSED(unused2); UNUSED(unused3);
+  return notImplemented();
+}
+
+/*
+ * Kill a client instance.
+ *
+ * @param The host of the client to kill.
+ * @param The port of the client.
+ * @return The status of the operation.
+ */
+static char *serverClientKill(char *host, char *port, char *unused) {
+  UNUSED(unused);
+  return notImplemented();
+}
+
+/*
+ * Pause serving operations to clients for some time.
+ *
+ * @param The amount of time to pause the server.
+ */
+static char *serverPause(char *timeout, char *unused1, char *unused2) {
+  UNUSED(unused1); UNUSED(unused2);
+  return notImplemented();
+}
+
+
+/********************************************************************************
+ *                      Modify document store commands.
+ *******************************************************************************/
+
+/*
  * Add a new document to the document store.
  *
  * @param key: The document's identifier.
@@ -333,13 +439,13 @@ static char *serverAddDocument(char *key, char *contents, char *unused) {
   if (strlen(err)) {
     /* The parsing failed. */
     mfree(err);
-    return NIL;
+    return nil();
   }
 
   Document *doc = documentCreate(key, json);
   dictSet(server.documents, key, doc);
 
-  return OK;
+  return ok();
 }
 
 /*
@@ -370,16 +476,44 @@ static char *serverGetDocumentContents(char *key, char *unused1, char *unused2) 
   Document *doc;
 
   if ((doc = serverGetDocument(key)) == NULL)
-    return NIL;
+    return nil();
 
   return jsonStringify(documentGetContents(doc));
 }
 
+/*
+ * Check whether a document exists in the database.
+ *
+ * @param key: The key to check.
+ * @return The status of whether the document exists.
+ */
+static char *serverExistsDocument(char *key, char *unused1, char *unused2) {
+  assert(key != NULL);
+  UNUSED(unused1); UNUSED(unused2);
+  return notImplemented();
+}
+
+/*
+ * Remove a document from the database.
+ *
+ * @param key: The document to remove.
+ * @return The status of the operation.
+ */
 static char *serverRemoveDocument(char *key, char *unused1, char *unused2) {
   assert(key != NULL);
   UNUSED(unused1); UNUSED(unused2);
   dictRemove(server.documents, key);
-  return OK;
+  return ok();
+}
+
+/*
+ * Get a list of all document keys in the database.
+ *
+ * @return The list of keys.
+ */
+static char *serverGetKeys(char *unused1, char *unused2, char *unused3) {
+  UNUSED(unused1); UNUSED(unused2); UNUSED(unused3);
+  return notImplemented();
 }
 
 /*
@@ -397,10 +531,10 @@ static char *serverAddCollaborator(char *key, char *userId, char *unused) {
   Document *doc;
 
   if ((doc = serverGetDocument(key)) == NULL)
-    return NIL;
+    return nil();
 
   documentAddCollaborator(doc, collaboratorCreate(userId));
-  return OK;
+  return ok();
 }
 
 /*
@@ -418,14 +552,14 @@ static char *serverRemoveCollaborator(char *key, char *userId, char *unused) {
   Document *doc;
 
   if ((doc = serverGetDocument(key)) == NULL)
-    return NIL;
+    return nil();
 
   documentRemoveCollaborator(doc, userId);
-  return OK;
+  return ok();
 }
 
 static char *serverModifyDocument(char *key, char *userId, char *change) {
-  return OK;
+  return notImplemented();
 }
 
 
@@ -433,18 +567,28 @@ static char *serverModifyDocument(char *key, char *userId, char *change) {
  *                           Run the server instance.
  *******************************************************************************/
 
-#define NUM_COMMANDS  7
-
 /* All commands supported by the server. */
 Command commandTable[] = {
-  {"ping", 0, &serverPing},
   {"add", 2, &serverAddDocument},
-  {"get", 1, &serverGetDocumentContents},
-  {"remove", 1, &serverRemoveDocument},
-  {"start", 2, &serverAddCollaborator},
+  {"commands", 0, &serverGetCommands},
+  {"client-list", 0, &serverClientList},
+  {"client-kill", 2, &serverClientKill},
   {"end", 2, &serverRemoveCollaborator},
+  {"exists", 1, &serverExistsDocument},
+  {"get", 1, &serverGetDocumentContents},
+  {"keys", 0, &serverGetKeys},
+  {"modify", 3, &serverModifyDocument},
+  {"pause", 0, &serverPause},
+  {"ping", 0, &serverPing},
+  {"remove", 1, &serverRemoveDocument},
+  {"size", 0, &serverNumDocuments},
+  {"start", 2, &serverAddCollaborator},
+  {"save", 0, &serverSave},
   {"update", 2, &serverModifyDocument}
 };
+
+#define NUM_COMMANDS    (sizeof(commandTable) / sizeof(commandTable[0]))
+
 
 /*
  * Interrupt handler that cleans up the open connections before exiting the program.
@@ -499,6 +643,7 @@ static void parseArgs(char *command, int argc, char **argv) {
       argLength = jump(command) - command;
     argv[i] = mmalloc(argLength + 1);
     strncpy(argv[i], command, argLength);
+    serverLog(LOG_LEVEL_DEBUG, "%s\n", argv[i]);
     command = jump(command);
   }
 }
@@ -592,9 +737,9 @@ void serverStart(unsigned int port, LogLevel verbosity, char *logFile, unsigned 
   int clientfd;
 
   /* Create threading system. */
-  pthread_t threads[server.maxClients];
+  Thread threads[server.maxClients];
   for (int i = 0; i < server.maxClients; i++)
-    pthread_create(&threads[i], NULL, serverThreadJob, NULL);
+    threadCreate(&threads[i], NULL, serverThreadJob, NULL);
 
   /* Catch interrupts for cleanup. */
   signal(SIGINT, interruptHandler);

@@ -9,7 +9,6 @@ int OOMSize;
 
 
 static void teardown(void) {
-  /* Make sure the tests clean up after themselves. */
   assertEqual(0, memoryUsage());
   assertEqual(0, memoryLimit());
   assertEqual(0, OOMSize);
