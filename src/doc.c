@@ -4,8 +4,16 @@
 #include "mmalloc.h"
 
 #include <assert.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
+
+
+#define mutexInit(x,y)   (pthread_mutex_init(x,y))
+#define mutexLock(x)     (pthread_mutex_lock(x))
+#define mutexUnlock(x)   (pthread_mutex_unlock(x))
+
+typedef pthread_mutex_t   Mutex;
 
 
 /**********************************************************************
@@ -16,6 +24,7 @@ struct Document {
   char *key;            /* The unique identifier for the document. */
   Json *contents;       /* The contents of the document. */
   List *collaborators;  /* All users working currently modifying the document. */
+  Mutex mutex;          /* Lock to access the document. */
 };
 
 struct Collaborator {
@@ -43,6 +52,7 @@ Document *documentCreate(char *key, Json *contents) {
   strcpy(doc->key, key);
   doc->contents = contents;
   doc->collaborators = listCreate(LIST_TYPE_ARRAY, &collaboratorFree);
+  mutexInit(&doc->mutex, NULL);
 
   return doc;
 }
@@ -85,7 +95,6 @@ Collaborator *collaboratorCreate(char *userId) {
  */
 void collaboratorFree(void *user) {
   assert(user != NULL);
-
   Collaborator *us = (Collaborator*) user;
   mfree(us->userId);
   mfree(us);
@@ -143,7 +152,9 @@ char *collaboratorGetKey(Collaborator *user) {
 void documentAddCollaborator(Document *doc, Collaborator *user) {
   assert(doc != NULL);
   assert(user != NULL);
+  mutexLock(&doc->mutex);
   listAppend(doc->collaborators, user);
+  mutexUnlock(&doc->mutex);
 }
 
 static int getCollaborator(List *list, char *key, Collaborator **user) {
@@ -190,10 +201,13 @@ static int getCollaborator(List *list, char *key, Collaborator **user) {
 void documentRemoveCollaborator(Document *doc, char *userId) {
   assert(doc != NULL);
   assert(userId != NULL);
+  mutexLock(&doc->mutex);
 
   Collaborator *user;
   int index;
 
   if ((index = getCollaborator(doc->collaborators, userId, &user)) >= 0)
     listRemove(doc->collaborators, index);
+
+  mutexUnlock(&doc->mutex);
 }

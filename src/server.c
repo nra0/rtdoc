@@ -20,6 +20,7 @@
 #define BUFFER_SIZE             4096
 #define UNUSED(x)               (void)(x)
 #define threadCreate(w,x,y,z)   (pthread_create(w,x,y,z))
+#define mutexInit(x,y)          (pthread_mutex_init(x,y))
 #define mutexLock(x)            (pthread_mutex_lock(x))
 #define mutexUnlock(x)          (pthread_mutex_unlock(x))
 #define condWait(x,y)           (pthread_cond_wait(x,y))
@@ -111,6 +112,7 @@ static void workQueueCreate(void) {
   assert(server.workQueue == NULL);
   server.workQueue = mmalloc(sizeof(WorkQueue));
   server.workQueue->clients = listCreate(LIST_TYPE_LINKED, &clientFree);
+  mutexInit(&server.workQueue->mutex, NULL);
 }
 
 /*
