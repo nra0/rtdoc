@@ -19,7 +19,7 @@
 
 #define BUFFER_SIZE             4096
 #define UNUSED(x)               (void)(x)
-#define threadCreate(w,x,y,z)   (pthread_create(w,x,y,z))
+#define threadCreate(x,y)       (pthread_create(x,NULL,y,NULL))
 #define mutexInit(x,y)          (pthread_mutex_init(x,y))
 #define mutexLock(x)            (pthread_mutex_lock(x))
 #define mutexUnlock(x)          (pthread_mutex_unlock(x))
@@ -109,7 +109,6 @@ static Client *clientCopy(Client *client) {
  * Initialize the server's work queue.
  */
 static void workQueueCreate(void) {
-  assert(server.workQueue == NULL);
   server.workQueue = mmalloc(sizeof(WorkQueue));
   server.workQueue->clients = listCreate(LIST_TYPE_LINKED, &clientFree);
   mutexInit(&server.workQueue->mutex, NULL);
@@ -222,7 +221,7 @@ static char *jump(char *string) {
  * @param logFile: The name of the file to log to (empty for stdout).
  * @param maxClients: The maximum concurrent clients to handle.
  */
-static void serverCreate(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients) {
+void serverCreate(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients) {
   /* Passed in properties. */
   server.pid = getpid();
   server.port = port;
@@ -275,7 +274,7 @@ static void serverCreate(unsigned int port, LogLevel verbosity, char *logFile, u
  *
  * @param server: The server to free.
  */
-static void serverFree(void) {
+void serverFree(void) {
   close(server.fd);
   mfree(server.addr);
   mfree(server.logFileName);
@@ -667,7 +666,7 @@ static void freeArgs(char **argv, int i) {
  * @param command: The command along with its arguments.
  * @return The output of the command.
  */
-static char *runCommand(char *command) {
+char *serverRunCommand(char *command) {
   assert(command != NULL);
 
   int length;
@@ -702,7 +701,7 @@ static void handleClientRequest(Client *client) {
   /* Accept requests in a loop. */
   while (serverRead(client->fd, buffer) > 0) {
     serverLog(LOG_LEVEL_DEBUG, buffer);
-    output = runCommand(skip(buffer));
+    output = serverRunCommand(skip(buffer));
     if (serverWrite(client->fd, output) <= 0) {
       serverLog(LOG_LEVEL_INFO, "Client disconnected: %d.\n", client->fd);
       mfree(output);
@@ -726,6 +725,15 @@ static void *serverThreadJob(void *unused) {
 }
 
 /*
+ * Get the next client request.
+ *
+ * @return The status code of accepting the client.
+ */
+static int getClient(void) {
+  return accept(server.fd, NULL, NULL);
+}
+
+/*
  * Initialize and start the server.
  *
  * @param port: The port to run the server on.
@@ -734,26 +742,25 @@ static void *serverThreadJob(void *unused) {
  * @param maxClients: The maximum concurrent clients.
  */
 void serverStart(unsigned int port, LogLevel verbosity, char *logFile, unsigned int maxClients) {
+  int client;
   serverCreate(port, verbosity, logFile, maxClients);
-
-  int clientfd;
 
   /* Create threading system. */
   Thread threads[server.maxClients];
   for (int i = 0; i < server.maxClients; i++)
-    threadCreate(&threads[i], NULL, serverThreadJob, NULL);
+    threadCreate(&threads[i], serverThreadJob);
 
   /* Catch interrupts for cleanup. */
   signal(SIGINT, interruptHandler);
 
   /* Accept requests in a loop. */
   while (true) {
-    if ((clientfd = accept(server.fd, NULL, NULL)) < 0) {
+    if ((client = getClient()) < 0) {
       serverLog(LOG_LEVEL_ERROR, "Error accepting client.\n");
       continue;
     }
-    serverLog(LOG_LEVEL_DEBUG, "Client connected: %d\n", clientfd);
-    workQueuePush(clientCreate(clientfd));
+    serverLog(LOG_LEVEL_DEBUG, "Client connected: %d\n", client);
+    workQueuePush(clientCreate(client));
   }
 
   serverFree();
